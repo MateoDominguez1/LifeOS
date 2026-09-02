@@ -1,0 +1,1084 @@
+// ============================================================================
+// LIFEOS — UNIFIED SCHEMA (Fase 2 draft, NOT applied to any database)
+// ----------------------------------------------------------------------------
+// This is a design document, not a running migration. It has not been run
+// against any database (`prisma migrate` has not been invoked), and none of
+// the three original apps (smart-monthly-budget / Clorias / GYM) have been
+// touched. It merges their three schemas into one, applying the decisions
+// confirmed 2026-08-31:
+//
+//   1. Three `User` tables -> one `User`.
+//   2. Nutrition's and Fitness's `UserProfile` both dupe age/sex/height and a
+//      cached body weight -> shared `BodyProfile` (no weightKg field — current
+//      weight is always read from the latest `WeightEntry`, never duplicated).
+//   3. Nutrition's and Fitness's `WeightEntry` -> one shared `WeightEntry`.
+//   4. Fitness's fitness-only `Goal` -> generalized `Goal` with a `domain`
+//      field (BODY / FINANCE / NUTRITION / FITNESS), also absorbing Finance's
+//      `SavingsGoal` (domain=FINANCE, metric=SAVINGS). This is the change
+//      flagged as "non-blocking, defaulting to yes" in the audit — easy to
+//      revert to two separate models if you'd rather keep SavingsGoal as-is.
+//   5. New `ManagedProfile` model: tracks a person (e.g. a partner) who does
+//      NOT have their own LifeOS login, per your answer to question 3. Kept
+//      separate from Fitness's existing `PersonConnection` (peer accounts
+//      that each register and share data with permissions) — that model is
+//      preserved as-is so no existing real rows are lost, but new "People"
+//      UI work should target `ManagedProfile`.
+//   6. `Notification` (Fitness-only today) promoted to an app-wide model.
+//   7. `UserPreference` (Nutrition-only today) promoted to app-wide settings.
+//
+// Everything else — Money's 10 models, Nutrition's food/meal/recipe models,
+// Fitness's workout/exercise models — is ported with its original fields
+// unchanged, just re-pointed at the one unified `User`.
+//
+// NOT designed yet (Calendar, Study, Tasks, Habits, Sleep, Shopping beyond
+// what Money already has, Travel) — those come with their own phases per the
+// migration plan, once the core three modules are actually migrated.
+// ============================================================================
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ----------------------------------------------------------------------------
+// CORE — one account, one set of shared facts about the user's body
+// ----------------------------------------------------------------------------
+
+/// The single LifeOS account. Replaces the three separate `User` tables from
+/// Money, Nutrition and Fitness.
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  name         String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  preference       UserPreference?
+  bodyProfile      BodyProfile?
+  nutritionProfile NutritionProfile?
+  nutritionGoals   NutritionGoals?
+  fitnessProfile   FitnessProfile?
+
+  // Money
+  accounts          Account[]
+  categories        Category[]
+  transactions      Transaction[]
+  transfers         Transfer[]
+  fixedExpenses     FixedExpense[]
+  incomes           Income[]
+  budgets           Budget[]
+  importantDates    ImportantDate[]
+  shoppingLists     ShoppingList[]
+  apiTokens         ApiToken[]
+  pushSubscriptions PushSubscription[]
+
+  // Nutrition
+  meals          Meal[]
+  waterEntries   WaterEntry[]
+  recipes        Recipe[]
+  customFoods    FoodItem[]
+  dailySummaries DailySummary[]
+
+  // Fitness
+  workoutPrograms   WorkoutProgram[]
+  workoutSessions   WorkoutSession[]
+  progressPhotos    ProgressPhoto[]
+  bodyMeasurements  BodyMeasurement[]
+  personalRecords   PersonalRecord[]
+  aiRecommendations AIRecommendation[]
+  createdExercises  Exercise[]
+
+  // Shared / cross-domain
+  weightEntries  WeightEntry[]
+  goals          Goal[]
+  notifications  Notification[]
+
+  // People
+  managedProfiles       ManagedProfile[]        @relation("ProfileOwner")
+  connectionsInitiated  PersonConnection[]       @relation("ConnectionInitiator")
+  connectionsReceived   PersonConnection[]       @relation("ConnectionReceiver")
+  connectionPermissions ConnectionPermission[]
+}
+
+/// App-wide settings. Was Nutrition-only (`UserPreference`); promoted here
+/// because theme/language/notifications shouldn't be per-module.
+model UserPreference {
+  userId                String    @id
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  theme                 Theme     @default(SYSTEM)
+  language              String    @default("es")
+  units                 String    @default("metric")
+  notificationsEnabled  Boolean   @default(true)
+  onboardingCompletedAt DateTime?
+}
+
+/// Shared biometric facts. Replaces the age/sex/height fields that were
+/// duplicated across Nutrition's and Fitness's separate `UserProfile` models.
+/// Deliberately has NO weight field — current body weight is always the
+/// latest row in `WeightEntry`, so it can never drift out of sync between
+/// Nutrition and Fitness.
+model BodyProfile {
+  userId    String   @id
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  age       Int?
+  sex       Sex?
+  heightCm  Float?
+  updatedAt DateTime @updatedAt
+}
+
+// ----------------------------------------------------------------------------
+// SHARED / CROSS-DOMAIN
+// ----------------------------------------------------------------------------
+
+/// Body weight over time. Was duplicated almost field-for-field in both
+/// Nutrition (`WeightEntry`) and Fitness (`WeightEntry`) — unified per your
+/// own "don't duplicate data" rule (§3 of the brief).
+model WeightEntry {
+  id               String          @id @default(cuid())
+  userId           String
+  user             User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  managedProfileId String?
+  managedProfile   ManagedProfile? @relation(fields: [managedProfileId], references: [id], onDelete: Cascade)
+  weightKg         Float
+  loggedAt         DateTime        @default(now())
+  note             String?
+
+  @@index([userId, loggedAt])
+  @@index([managedProfileId, loggedAt])
+}
+
+/// Unified cross-domain goal, powering the Home "Goals" widget in one query
+/// instead of unioning three separate tables. Generalizes Fitness's original
+/// fitness-only `Goal` and absorbs Finance's `SavingsGoal` (domain=FINANCE,
+/// metric=SAVINGS, using the `accountId` link). `currentValue` is a cache —
+/// updated by app logic when a relevant event fires (expense logged, weight
+/// logged, workout completed), not a hand-entered duplicate of source data.
+model Goal {
+  id               String           @id @default(cuid())
+  userId           String
+  user             User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  managedProfileId String?
+  managedProfile   ManagedProfile?  @relation(fields: [managedProfileId], references: [id], onDelete: Cascade)
+
+  domain      GoalDomain
+  metric      GoalMetric
+  label       String // e.g. "Lose 9kg", "160g protein/day", "Save €500/month"
+
+  // set only when metric = EXERCISE_WEIGHT or BODY_MEASUREMENT
+  exerciseId      String?
+  exercise        Exercise?         @relation(fields: [exerciseId], references: [id])
+  measurementType MeasurementType?
+
+  // set only when metric = SAVINGS
+  accountId String?
+  account   Account? @relation(fields: [accountId], references: [id], onDelete: SetNull)
+
+  targetValue  Decimal    @db.Decimal(12, 2)
+  currentValue Decimal    @default(0) @db.Decimal(12, 2)
+  targetDate   DateTime?
+  status       GoalStatus @default(ACTIVE)
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  @@index([userId, status])
+  @@index([managedProfileId, status])
+}
+
+/// App-wide notification inbox. Was Fitness-only; promoted here so Money and
+/// Nutrition can raise notifications too (Money already has a working
+/// push+cron pipeline — see FASE 17 in the migration plan — this model is
+/// what that pipeline will write to instead of being fitness-specific).
+model Notification {
+  id        String           @id @default(cuid())
+  userId    String
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type      NotificationType
+  title     String
+  body      String
+  payload   Json?
+  read      Boolean          @default(false)
+  createdAt DateTime         @default(now())
+
+  @@index([userId, read])
+}
+
+/// A person you track from your own account — e.g. a partner — who does NOT
+/// have their own LifeOS login. Distinct from `PersonConnection`, which is
+/// for two people who each have their own account and share data with
+/// permissions. New "People" work should build on this model; the old
+/// PersonConnection/ConnectionPermission pair below is preserved only so any
+/// existing real rows in Fitness aren't lost during migration.
+model ManagedProfile {
+  id           String   @id @default(cuid())
+  ownerId      String
+  owner        User     @relation("ProfileOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  name         String
+  relationship String? // free-text label, e.g. "Girlfriend" — not an enum
+  avatarUrl    String?
+  createdAt    DateTime @default(now())
+
+  workoutPrograms  WorkoutProgram[]
+  workoutSessions  WorkoutSession[]
+  weightEntries    WeightEntry[]
+  bodyMeasurements BodyMeasurement[]
+  progressPhotos   ProgressPhoto[]
+  personalRecords  PersonalRecord[]
+  goals            Goal[]
+
+  @@index([ownerId])
+}
+
+// ----------------------------------------------------------------------------
+// MONEY — ported from smart-monthly-budget, fields unchanged
+// ----------------------------------------------------------------------------
+
+model Account {
+  id                String    @id @default(cuid())
+  userId            String
+  user              User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name              String
+  type              AccountType @default(CHECKING)
+  balance           Decimal   @default(0) @db.Decimal(12, 2)
+  color             String    @default("#6366f1")
+  icon              String    @default("wallet")
+  isActive          Boolean   @default(true)
+  excludeFromTotal  Boolean   @default(false)
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  transactions   Transaction[]
+  fixedExpenses  FixedExpense[]
+  incomes        Income[]
+  budgets        Budget[]
+  goals          Goal[]
+  transfersFrom  Transfer[] @relation("TransferFrom")
+  transfersTo    Transfer[] @relation("TransferTo")
+
+  @@index([userId])
+}
+
+model Category {
+  id        String   @id @default(cuid())
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name      String
+  icon      String   @default("tag")
+  color     String   @default("#94a3b8")
+  isDefault Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  transactions  Transaction[]
+  fixedExpenses FixedExpense[]
+  budgets       Budget[]
+
+  @@index([userId])
+}
+
+model Transaction {
+  id              String          @id @default(cuid())
+  userId          String
+  user            User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accountId       String
+  account         Account         @relation(fields: [accountId], references: [id], onDelete: Restrict)
+  categoryId      String?
+  category        Category?       @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  type            TransactionType
+  amount          Decimal         @db.Decimal(12, 2)
+  description     String
+  note            String?
+  date            DateTime
+  fixedExpenseId  String?
+  fixedExpense    FixedExpense?   @relation(fields: [fixedExpenseId], references: [id], onDelete: Restrict)
+  incomeId        String?
+  income          Income?         @relation(fields: [incomeId], references: [id], onDelete: Restrict)
+  receiptData     Bytes?
+  receiptMimeType String?
+  receiptFileName String?
+  createdAt       DateTime        @default(now())
+
+  @@index([userId, date])
+  @@index([accountId])
+  @@index([categoryId])
+  @@index([fixedExpenseId])
+  @@index([incomeId])
+}
+
+model Transfer {
+  id            String   @id @default(cuid())
+  userId        String
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  fromAccountId String
+  fromAccount   Account  @relation("TransferFrom", fields: [fromAccountId], references: [id], onDelete: Restrict)
+  toAccountId   String
+  toAccount     Account  @relation("TransferTo", fields: [toAccountId], references: [id], onDelete: Restrict)
+  amount        Decimal  @db.Decimal(12, 2)
+  date          DateTime
+  note          String?
+  createdAt     DateTime @default(now())
+
+  @@index([userId, date])
+}
+
+model FixedExpense {
+  id         String     @id @default(cuid())
+  userId     String
+  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name       String
+  amount     Decimal    @db.Decimal(12, 2)
+  dueDay     Int
+  accountId  String
+  account    Account    @relation(fields: [accountId], references: [id], onDelete: Restrict)
+  categoryId String?
+  category   Category?  @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  frequency  Frequency  @default(MONTHLY)
+  startDate  DateTime
+  endDate    DateTime?
+  isActive   Boolean    @default(true)
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
+
+  transactions Transaction[]
+
+  @@index([userId])
+}
+
+model Income {
+  id         String    @id @default(cuid())
+  userId     String
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name       String
+  amount     Decimal?  @db.Decimal(12, 2)
+  accountId  String
+  account    Account   @relation(fields: [accountId], references: [id], onDelete: Restrict)
+  dayOfMonth Int
+  frequency  Frequency @default(MONTHLY)
+  isActive   Boolean   @default(true)
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  transactions Transaction[]
+
+  @@index([userId])
+}
+
+model Budget {
+  id            String     @id @default(cuid())
+  userId        String
+  user          User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name          String
+  type          BudgetType @default(CUSTOM)
+  categoryId    String
+  category      Category   @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  accountId     String?
+  account       Account?   @relation(fields: [accountId], references: [id], onDelete: SetNull)
+  monthlyAmount Decimal    @db.Decimal(12, 2)
+  weeklyAmount  Decimal?   @db.Decimal(12, 2)
+  weekStartDay  Int?
+  isActive      Boolean    @default(true)
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+
+  @@index([userId])
+}
+
+model ImportantDate {
+  id                String            @id @default(cuid())
+  userId            String
+  user              User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  personName        String
+  relationship      String?
+  type              ImportantDateType @default(BIRTHDAY)
+  date              DateTime
+  note              String?
+  reminderDaysBefore Int              @default(14)
+  isActive          Boolean           @default(true)
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+
+  @@index([userId])
+}
+
+model ShoppingList {
+  id          String             @id @default(cuid())
+  userId      String
+  user        User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name        String?
+  createdAt   DateTime           @default(now())
+  completedAt DateTime?
+  items       ShoppingListItem[]
+
+  @@index([userId])
+}
+
+model ShoppingListItem {
+  id             String       @id @default(cuid())
+  shoppingListId String
+  shoppingList   ShoppingList @relation(fields: [shoppingListId], references: [id], onDelete: Cascade)
+  description    String
+  estimatedPrice Decimal      @db.Decimal(10, 2)
+  createdAt      DateTime     @default(now())
+
+  @@index([shoppingListId])
+}
+
+model ApiToken {
+  id         String    @id @default(cuid())
+  userId     String
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name       String
+  tokenHash  String    @unique
+  lastUsedAt DateTime?
+  createdAt  DateTime  @default(now())
+
+  @@index([userId])
+}
+
+model PushSubscription {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  endpoint  String   @unique
+  p256dh    String
+  auth      String
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+}
+
+// ----------------------------------------------------------------------------
+// NUTRITION — ported from Clorias, fields unchanged except UserProfile split
+// ----------------------------------------------------------------------------
+
+/// Nutrition-specific onboarding data. Age/sex/height/weight moved out to
+/// `BodyProfile`/`WeightEntry` — see the header note.
+model NutritionProfile {
+  userId               String            @id
+  user                 User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  activityLevel        ActivityLevel
+  isSedentaryJob       Boolean           @default(true)
+  trainingDaysPerWeek  Int?
+  trainingDurationMin  Int?
+  otherSports          String?
+  goalType             NutritionGoalType
+  goalRateKgPerWeek    Float?
+  goalTargetDate       DateTime?
+  mealsPerDay          Int?
+  dietaryPreference    String?
+  allergies            String[]          @default([])
+  dietType             String?
+  favoriteFoods        String[]          @default([])
+  limitedFoods         String[]          @default([])
+  autoRecalculateGoals Boolean           @default(true)
+  updatedAt            DateTime          @updatedAt
+}
+
+model NutritionGoals {
+  userId              String   @id
+  user                User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  calories            Int
+  protein             Int
+  carbs               Int
+  fat                 Int
+  fiber               Int
+  water               Float
+  sugar               Int?
+  trackCalories       Boolean  @default(true)
+  trackProtein        Boolean  @default(true)
+  trackCarbs          Boolean  @default(true)
+  trackFat            Boolean  @default(true)
+  trackFiber          Boolean  @default(true)
+  trackWater          Boolean  @default(true)
+  trackSugar          Boolean  @default(true)
+  trackMicronutrients Boolean  @default(true)
+  isManualOverride    Boolean  @default(false)
+  updatedAt           DateTime @updatedAt
+}
+
+model FoodItem {
+  id                    String      @id @default(cuid())
+  name                  String
+  source                FoodSource
+  usdaFdcId             String?     @unique
+  fatSecretId           String?     @unique
+  caloriesPer100g       Float
+  proteinPer100g        Float
+  carbsPer100g          Float
+  fatPer100g            Float
+  fiberPer100g          Float?
+  sugarPer100g          Float?
+  sodiumPer100g         Float?
+  commonPortionGrams    Float?
+  isFrequent            Boolean     @default(false)
+  userId                String?
+  user                  User?       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt             DateTime    @default(now())
+
+  mealFoods         MealFood[]
+  recipeIngredients RecipeIngredient[]
+
+  @@index([name])
+}
+
+model Meal {
+  id             String    @id @default(cuid())
+  userId         String
+  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  mealType       MealType
+  name           String
+  photoUrl       String?
+  aiAnalysisRaw  Json?
+  aiConfidence   Float?
+  isAiGenerated  Boolean   @default(false)
+  isConfirmed    Boolean   @default(true)
+  loggedAt       DateTime  @default(now())
+  totalCalories  Float
+  totalProtein   Float
+  totalCarbs     Float
+  totalFat       Float
+  totalFiber     Float
+  foods          MealFood[]
+
+  @@index([userId, loggedAt])
+}
+
+model MealFood {
+  id                String   @id @default(cuid())
+  mealId            String
+  meal              Meal     @relation(fields: [mealId], references: [id], onDelete: Cascade)
+  foodItemId        String?
+  foodItem          FoodItem? @relation(fields: [foodItemId], references: [id], onDelete: SetNull)
+  foodNameSnapshot  String
+  quantityGrams     Float
+  calories          Float
+  protein           Float
+  carbs             Float
+  fat               Float
+  fiber             Float
+  sugar             Float?
+  confidence        Float?
+  preparationMethod String?
+}
+
+model WaterEntry {
+  id       String   @id @default(cuid())
+  userId   String
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  amountMl Int
+  loggedAt DateTime @default(now())
+
+  @@index([userId, loggedAt])
+}
+
+model Recipe {
+  id           String              @id @default(cuid())
+  userId       String
+  user         User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name         String
+  servings     Int
+  instructions String?
+  createdAt    DateTime            @default(now())
+  ingredients  RecipeIngredient[]
+}
+
+model RecipeIngredient {
+  id            String   @id @default(cuid())
+  recipeId      String
+  recipe        Recipe   @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+  foodItemId    String
+  foodItem      FoodItem @relation(fields: [foodItemId], references: [id], onDelete: Restrict)
+  quantityGrams Float
+}
+
+model DailySummary {
+  id            String   @id @default(cuid())
+  userId        String
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  date          DateTime
+  totalCalories Float    @default(0)
+  totalProtein  Float    @default(0)
+  totalCarbs    Float    @default(0)
+  totalFat      Float    @default(0)
+  totalFiber    Float    @default(0)
+  totalWater    Float    @default(0)
+  weightKg      Float?
+  goalCalories  Int
+  metGoal       Boolean  @default(false)
+
+  @@unique([userId, date])
+  @@index([userId, date])
+}
+
+// ----------------------------------------------------------------------------
+// FITNESS — ported from GYM (ai-workout-coach), fields unchanged except
+// UserProfile split and the nullable managedProfileId added where a workout,
+// weight, measurement, photo, PR or goal can belong to a managed profile.
+// ----------------------------------------------------------------------------
+
+model FitnessProfile {
+  userId                String            @id
+  user                  User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  level                 ExperienceLevel?
+  primaryGoal           FitnessGoalType?
+  secondaryGoals        FitnessGoalType[]
+  daysPerWeek           Int?
+  trainingDays          Int[]
+  sessionDurationMin    Int?
+  equipment             EquipmentType[]
+  favoriteExerciseIds   String[]
+  excludedExerciseIds   String[]
+  priorityMuscles       String[]
+  cardioPreference      Boolean           @default(false)
+  limitations           String?
+  rirRpeMode            RirRpeMode        @default(RIR)
+  unitPreference        UnitPreference    @default(KG)
+  onboardingCompletedAt DateTime?
+  updatedAt             DateTime          @updatedAt
+}
+
+model ExerciseCategory {
+  id        String     @id @default(cuid())
+  name      String     @unique
+  exercises Exercise[]
+}
+
+model Exercise {
+  id               String            @id @default(cuid())
+  name             String
+  categoryId       String?
+  category         ExerciseCategory? @relation(fields: [categoryId], references: [id])
+  muscleGroups     String[]
+  equipment        EquipmentType[]
+  videoUrl         String?
+  defaultTempo     String?
+  isCustom         Boolean           @default(false)
+  createdByUserId  String?
+  createdByUser    User?             @relation(fields: [createdByUserId], references: [id])
+  createdAt        DateTime          @default(now())
+
+  workoutExercises WorkoutExercise[]
+  personalRecords  PersonalRecord[]
+  goals            Goal[]
+
+  @@index([name])
+}
+
+model WorkoutProgram {
+  id               String          @id @default(cuid())
+  userId           String
+  user             User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  managedProfileId String?
+  managedProfile   ManagedProfile? @relation(fields: [managedProfileId], references: [id], onDelete: Cascade)
+  name             String
+  active           Boolean         @default(true)
+  source           ProgramSource   @default(AI)
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+  days             WorkoutDay[]
+
+  @@index([userId])
+}
+
+model WorkoutDay {
+  id        String @id @default(cuid())
+  programId String
+  program   WorkoutProgram @relation(fields: [programId], references: [id], onDelete: Cascade)
+  dayOfWeek Int
+  label     String
+  order     Int    @default(0)
+
+  exercises       WorkoutExercise[]
+  workoutSessions WorkoutSession[]
+
+  @@index([programId])
+}
+
+model WorkoutExercise {
+  id             String     @id @default(cuid())
+  workoutDayId   String
+  workoutDay     WorkoutDay @relation(fields: [workoutDayId], references: [id], onDelete: Cascade)
+  exerciseId     String
+  exercise       Exercise   @relation(fields: [exerciseId], references: [id])
+  order          Int        @default(0)
+  targetSets     Int
+  targetRepsMin  Int
+  targetRepsMax  Int
+  targetWeightKg Float?
+  restSeconds    Int
+  tempo          String?
+  targetRir      Int?
+  targetRpe      Float?
+  removedAt      DateTime?
+
+  sets WorkoutSet[]
+
+  @@index([workoutDayId])
+}
+
+model WorkoutSession {
+  id               String          @id @default(cuid())
+  userId           String
+  user             User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  managedProfileId String?
+  managedProfile   ManagedProfile? @relation(fields: [managedProfileId], references: [id], onDelete: Cascade)
+  workoutDayId     String?
+  workoutDay       WorkoutDay?     @relation(fields: [workoutDayId], references: [id])
+  startedAt        DateTime        @default(now())
+  completedAt      DateTime?
+  durationSec      Int?
+  notes            String?
+
+  sets            WorkoutSet[]
+  personalRecords PersonalRecord[]
+
+  @@index([userId])
+  @@index([userId, startedAt])
+}
+
+model WorkoutSet {
+  id                String          @id @default(cuid())
+  sessionId         String
+  session           WorkoutSession  @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  workoutExerciseId String
+  workoutExercise   WorkoutExercise @relation(fields: [workoutExerciseId], references: [id])
+  setNumber         Int
+  weightKg          Float
+  reps              Int
+  rir               Int?
+  rpe               Float?
+  completed         Boolean         @default(false)
+  notes             String?
+  createdAt         DateTime        @default(now())
+
+  @@index([sessionId])
+  @@index([workoutExerciseId])
+}
+
+model ProgressPhoto {
+  id               String          @id @default(cuid())
+  userId           String
+  user             User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  managedProfileId String?
+  managedProfile   ManagedProfile? @relation(fields: [managedProfileId], references: [id], onDelete: Cascade)
+  storageKey       String
+  angle            PhotoAngle
+  takenAt          DateTime        @default(now())
+  weightKgAtTime   Float?
+  notes            String?
+  privacy          PrivacyLevel    @default(PRIVATE)
+  createdAt        DateTime        @default(now())
+
+  @@index([userId, takenAt])
+}
+
+model BodyMeasurement {
+  id               String          @id @default(cuid())
+  userId           String
+  user             User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  managedProfileId String?
+  managedProfile   ManagedProfile? @relation(fields: [managedProfileId], references: [id], onDelete: Cascade)
+  type             MeasurementType
+  customLabel      String?
+  valueCm          Float
+  loggedAt         DateTime        @default(now())
+
+  @@index([userId, type, loggedAt])
+}
+
+model PersonalRecord {
+  id               String          @id @default(cuid())
+  userId           String
+  user             User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  managedProfileId String?
+  managedProfile   ManagedProfile? @relation(fields: [managedProfileId], references: [id], onDelete: Cascade)
+  exerciseId       String
+  exercise         Exercise        @relation(fields: [exerciseId], references: [id])
+  type             PRType
+  value            Float
+  achievedAt       DateTime        @default(now())
+  sessionId        String?
+  session          WorkoutSession? @relation(fields: [sessionId], references: [id])
+
+  @@index([userId, exerciseId, type])
+}
+
+/// Structured, template-rendered suggestions — no generative AI involved
+/// (same rules-based design as in the original GYM app).
+model AIRecommendation {
+  id         String                @id @default(cuid())
+  userId     String
+  user       User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type       RecommendationType
+  payload    Json
+  status     RecommendationStatus  @default(PENDING)
+  createdAt  DateTime              @default(now())
+  resolvedAt DateTime?
+
+  @@index([userId, status])
+}
+
+/// Peer-to-peer sharing between two people who EACH have their own LifeOS
+/// account. Preserved from the original GYM app so no existing real
+/// connections are lost — new "add a person" flows should use
+/// `ManagedProfile` instead (see the header note and question 3's answer).
+model PersonConnection {
+  id           String            @id @default(cuid())
+  initiatorId  String
+  initiator    User              @relation("ConnectionInitiator", fields: [initiatorId], references: [id], onDelete: Cascade)
+  receiverId   String
+  receiver     User              @relation("ConnectionReceiver", fields: [receiverId], references: [id], onDelete: Cascade)
+  status       ConnectionStatus  @default(PENDING)
+  label        String?
+  createdAt    DateTime          @default(now())
+  respondedAt  DateTime?
+
+  @@unique([initiatorId, receiverId])
+  @@index([receiverId, status])
+}
+
+/// One row per (owner, resourceType) — governs what ANY accepted
+/// PersonConnection may see of the owner's data.
+model ConnectionPermission {
+  id           String       @id @default(cuid())
+  ownerId      String
+  owner        User         @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  resourceType ResourceType
+  level        PrivacyLevel @default(PRIVATE)
+  updatedAt    DateTime     @updatedAt
+
+  @@unique([ownerId, resourceType])
+}
+
+// ============================================================================
+// ENUMS
+// ============================================================================
+
+enum Sex {
+  MALE
+  FEMALE
+  OTHER
+}
+
+enum Theme {
+  LIGHT
+  DARK
+  SYSTEM
+}
+
+// --- shared / cross-domain ---
+
+enum GoalDomain {
+  BODY
+  FINANCE
+  NUTRITION
+  FITNESS
+}
+
+enum GoalMetric {
+  SAVINGS
+  PROTEIN_TARGET_STREAK
+  CALORIE_ADHERENCE
+  BODY_WEIGHT
+  EXERCISE_WEIGHT
+  BODY_MEASUREMENT
+  WORKOUT_FREQUENCY
+}
+
+enum GoalStatus {
+  ACTIVE
+  ACHIEVED
+  ABANDONED
+}
+
+enum NotificationType {
+  WORKOUT_REMINDER
+  MISSED_WORKOUTS
+  NEW_PR
+  WEEKLY_GOAL
+  CONNECTION_REQUEST
+  CONNECTION_ACCEPTED
+  PARTNER_ACTIVITY
+  FIXED_EXPENSE_DUE
+  BUDGET_ALERT
+  PROTEIN_SHORTFALL
+  IMPORTANT_DATE_REMINDER
+}
+
+// --- money ---
+
+enum AccountType {
+  CHECKING
+  SAVINGS
+  CASH
+  CARD
+  OTHER
+}
+
+enum TransactionType {
+  EXPENSE
+  INCOME
+}
+
+enum Frequency {
+  WEEKLY
+  MONTHLY
+  YEARLY
+}
+
+enum BudgetType {
+  GROCERY
+  CUSTOM
+}
+
+enum ImportantDateType {
+  BIRTHDAY
+  ANNIVERSARY
+  OTHER
+}
+
+// --- nutrition ---
+
+enum ActivityLevel {
+  SEDENTARY
+  LIGHT
+  MODERATE
+  ACTIVE
+  VERY_ACTIVE
+}
+
+/// Renamed from Nutrition's original `GoalType` to avoid ambiguity with the
+/// unified `Goal` model above.
+enum NutritionGoalType {
+  LOSE_FAT
+  GAIN_MUSCLE
+  MAINTAIN
+  RECOMPOSITION
+  IMPROVE_DIET
+  OTHER
+}
+
+enum MealType {
+  BREAKFAST
+  LUNCH
+  DINNER
+  SNACK
+}
+
+enum FoodSource {
+  USDA
+  FATSECRET
+  CUSTOM
+  RECIPE
+}
+
+// --- fitness ---
+
+enum ExperienceLevel {
+  BEGINNER
+  INTERMEDIATE
+  ADVANCED
+}
+
+/// Renamed from Fitness's original `FitnessGoal` to avoid colliding with the
+/// unified `Goal` model above.
+enum FitnessGoalType {
+  GAIN_MUSCLE
+  LOSE_FAT
+  RECOMP
+  GAIN_STRENGTH
+  IMPROVE_CONDITIONING
+  MAINTAIN
+  OTHER
+}
+
+enum RirRpeMode {
+  RIR
+  RPE
+  NONE
+}
+
+enum UnitPreference {
+  KG
+  LB
+}
+
+enum EquipmentType {
+  FULL_GYM
+  BASIC_GYM
+  HOME_GYM
+  DUMBBELLS
+  MACHINES
+  BARBELL
+  BODYWEIGHT
+  OTHER
+}
+
+enum ProgramSource {
+  AI
+  MANUAL
+}
+
+enum PhotoAngle {
+  FRONT
+  SIDE
+  BACK
+}
+
+enum MeasurementType {
+  WAIST
+  CHEST
+  ARM
+  LEG
+  HIP
+  NECK
+  CUSTOM
+}
+
+enum PRType {
+  MAX_WEIGHT
+  MAX_REPS
+  MAX_VOLUME
+  ESTIMATED_1RM
+}
+
+enum RecommendationType {
+  WEIGHT_INCREASE
+  WEIGHT_DECREASE
+  MAINTAIN_WEIGHT
+  PLATEAU_DETECTED
+  ROUTINE_ADJUSTMENT
+  EXERCISE_REPLACEMENT
+}
+
+enum RecommendationStatus {
+  PENDING
+  ACCEPTED
+  DISMISSED
+}
+
+enum ConnectionStatus {
+  PENDING
+  ACCEPTED
+  DECLINED
+  BLOCKED
+  REVOKED
+}
+
+enum ResourceType {
+  WORKOUT_ACTIVITY
+  PROGRESS
+  WEIGHT
+  MEASUREMENTS
+  PHOTOS
+  PRS
+}
+
+enum PrivacyLevel {
+  PRIVATE
+  PEOPLE
+  PUBLIC
+}

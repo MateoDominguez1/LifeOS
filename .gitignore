@@ -1,0 +1,30 @@
+# dependencies
+/node_modules
+scripts/backup/node_modules
+
+# next.js
+/.next/
+/out/
+
+# generated prisma client
+/src/generated/
+
+# env
+.env
+.env*.local
+
+# real personal data — never commit
+/backups/*
+!/backups/.gitignore
+
+# local dev fallback for progress-photo storage — real personal photos
+/.local-storage/
+
+# misc
+.DS_Store
+*.tsbuildinfo
+next-env.d.ts
+.vercel
+
+.vercel
+.env*

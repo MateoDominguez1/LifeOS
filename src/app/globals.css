@@ -1,0 +1,132 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+/*
+  LifeOS design tokens.
+  Domain colors (money / nutrition / fitness) are shared with the audit
+  documents for the project, kept deliberately distinct from the
+  --accent (LifeOS itself). Dark is the primary mode — a quantified-self
+  personal dashboard reads better dark, per the Oura/Whoop reference points
+  in the brief — light is a fully designed second mode, not an afterthought.
+*/
+:root {
+  --bg: #f6f7fa;
+  --surface: #ffffff;
+  --surface-raised: #ffffff;
+  --ink: #14171d;
+  --ink-soft: #565c68;
+  --ink-faint: #8a8f99;
+  --border: #e2e5ea;
+  --border-soft: #ecedf2;
+
+  --accent: #5648c7;
+  --accent-soft: #eeecfb;
+  --accent-ink: #3c3199;
+
+  --money: #1f7a5c;
+  --money-soft: #e4f3ec;
+  --nutrition: #c2622a;
+  --nutrition-soft: #faeadf;
+  --fitness: #b0342b;
+  --fitness-soft: #f9e5e3;
+
+  --warn: #8a6300;
+  --warn-soft: #fbf1d8;
+  --danger: #a3241f;
+  --danger-soft: #fbe4e2;
+
+  --shadow-color: 220 20% 10%;
+}
+
+.dark {
+  --bg: #0b0d12;
+  --surface: #14171d;
+  --surface-raised: #191d24;
+  --ink: #eceef2;
+  --ink-soft: #a7adb8;
+  --ink-faint: #6e7480;
+  --border: #262b33;
+  --border-soft: #1d2129;
+
+  --accent: #9b90f0;
+  --accent-soft: #241f3d;
+  --accent-ink: #c7bffa;
+
+  --money: #4fd3a0;
+  --money-soft: #123024;
+  --nutrition: #f2965b;
+  --nutrition-soft: #33210f;
+  --fitness: #f0776c;
+  --fitness-soft: #331c19;
+
+  --warn: #e0b23d;
+  --warn-soft: #302810;
+  --danger: #f0776c;
+  --danger-soft: #331a18;
+
+  --shadow-color: 220 40% 2%;
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-raised: var(--surface-raised);
+  --color-ink: var(--ink);
+  --color-ink-soft: var(--ink-soft);
+  --color-ink-faint: var(--ink-faint);
+  --color-border: var(--border);
+  --color-border-soft: var(--border-soft);
+
+  --color-accent: var(--accent);
+  --color-accent-soft: var(--accent-soft);
+  --color-accent-ink: var(--accent-ink);
+
+  --color-money: var(--money);
+  --color-money-soft: var(--money-soft);
+  --color-nutrition: var(--nutrition);
+  --color-nutrition-soft: var(--nutrition-soft);
+  --color-fitness: var(--fitness);
+  --color-fitness-soft: var(--fitness-soft);
+
+  --color-warn: var(--warn);
+  --color-warn-soft: var(--warn-soft);
+  --color-danger: var(--danger);
+  --color-danger-soft: var(--danger-soft);
+
+  --font-display: var(--font-manrope), ui-sans-serif, system-ui, sans-serif;
+  --font-body: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-plex-mono), ui-monospace, "SFMono-Regular", monospace;
+}
+
+* {
+  border-color: var(--color-border);
+}
+
+html {
+  color-scheme: light;
+}
+html.dark {
+  color-scheme: dark;
+}
+
+body {
+  background: var(--color-bg);
+  color: var(--color-ink);
+  font-family: var(--font-body);
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+
+::selection {
+  background: var(--color-accent-soft);
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}
