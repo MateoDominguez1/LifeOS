@@ -1,23 +1,26 @@
 import type { Sex } from "@/lib/nutrition/types";
 import type { OnboardingData } from "../types";
 import { Field, OptionCard, StepShell, TextInput } from "@/components/nutrition/form";
-
-const SEX_OPTIONS: { value: Sex; label: string }[] = [
-  { value: "MALE", label: "Masculino" },
-  { value: "FEMALE", label: "Femenino" },
-  { value: "OTHER", label: "Otro" },
-];
+import type { Dictionary } from "@/lib/i18n";
 
 export function Step2Personal({
   data,
   update,
+  t,
 }: {
   data: OnboardingData;
   update: (patch: Partial<OnboardingData>) => void;
+  t: Dictionary["nutrition"];
 }) {
+  const SEX_OPTIONS: { value: Sex; label: string }[] = [
+    { value: "MALE", label: t.common.sexMale },
+    { value: "FEMALE", label: t.common.sexFemale },
+    { value: "OTHER", label: t.common.sexOther },
+  ];
+
   return (
-    <StepShell title="Datos personales" subtitle="Para calcular tu metabolismo basal.">
-      <Field label="Edad">
+    <StepShell title={t.onboarding.step2Title} subtitle={t.onboarding.step2Subtitle}>
+      <Field label={t.common.ageLabel}>
         <TextInput
           type="number"
           min={10}
@@ -27,7 +30,7 @@ export function Step2Personal({
         />
       </Field>
 
-      <Field label="Sexo">
+      <Field label={t.common.sexLabel}>
         <div className="grid grid-cols-3 gap-2">
           {SEX_OPTIONS.map((opt) => (
             <OptionCard
@@ -41,7 +44,7 @@ export function Step2Personal({
         </div>
       </Field>
 
-      <Field label="Altura (cm)">
+      <Field label={t.common.heightLabel}>
         <TextInput
           type="number"
           min={100}
@@ -51,7 +54,7 @@ export function Step2Personal({
         />
       </Field>
 
-      <Field label="Peso actual (kg)">
+      <Field label={t.common.currentWeightLabel}>
         <TextInput
           type="number"
           min={30}
@@ -62,7 +65,7 @@ export function Step2Personal({
         />
       </Field>
 
-      <Field label="Peso objetivo (kg) — opcional">
+      <Field label={t.onboarding.weightGoalLabel}>
         <TextInput
           type="number"
           min={30}

@@ -1,27 +1,30 @@
 import type { GoalType } from "@/lib/nutrition/types";
 import type { OnboardingData } from "../types";
 import { Field, OptionCard, StepShell, TextInput } from "@/components/nutrition/form";
-
-export const GOAL_OPTIONS: { value: GoalType; label: string }[] = [
-  { value: "LOSE_FAT", label: "Perder grasa" },
-  { value: "GAIN_MUSCLE", label: "Ganar masa muscular" },
-  { value: "MAINTAIN", label: "Mantener peso" },
-  { value: "RECOMPOSITION", label: "Recomposición corporal" },
-  { value: "IMPROVE_DIET", label: "Mejorar alimentación" },
-  { value: "OTHER", label: "Otro" },
-];
+import type { Dictionary } from "@/lib/i18n";
 
 export function Step4Goal({
   data,
   update,
+  t,
 }: {
   data: OnboardingData;
   update: (patch: Partial<OnboardingData>) => void;
+  t: Dictionary["nutrition"];
 }) {
   const showRate = data.goalType === "LOSE_FAT" || data.goalType === "GAIN_MUSCLE";
 
+  const GOAL_OPTIONS: { value: GoalType; label: string }[] = [
+    { value: "LOSE_FAT", label: t.onboarding.goalLoseFat },
+    { value: "GAIN_MUSCLE", label: t.onboarding.goalGainMuscle },
+    { value: "MAINTAIN", label: t.onboarding.goalMaintain },
+    { value: "RECOMPOSITION", label: t.onboarding.goalRecomposition },
+    { value: "IMPROVE_DIET", label: t.onboarding.goalImproveDiet },
+    { value: "OTHER", label: t.onboarding.goalOther },
+  ];
+
   return (
-    <StepShell title="¿Cuál es tu objetivo principal?">
+    <StepShell title={t.onboarding.step4Title}>
       <div className="grid grid-cols-2 gap-2">
         {GOAL_OPTIONS.map((opt) => (
           <OptionCard
@@ -36,13 +39,13 @@ export function Step4Goal({
 
       {showRate && (
         <div className="grid grid-cols-2 gap-3">
-          <Field label="Ritmo objetivo (kg/semana) — opcional">
+          <Field label={t.onboarding.goalRateLabel}>
             <TextInput
               type="number"
               min={0.1}
               max={1.5}
               step={0.1}
-              placeholder="Ej: 0.5"
+              placeholder={t.onboarding.goalRatePlaceholder}
               value={data.goalRateKgPerWeek ?? ""}
               onChange={(e) =>
                 update({
@@ -51,7 +54,7 @@ export function Step4Goal({
               }
             />
           </Field>
-          <Field label="Fecha objetivo — opcional">
+          <Field label={t.onboarding.goalDateLabel}>
             <TextInput
               type="date"
               value={data.goalTargetDate}

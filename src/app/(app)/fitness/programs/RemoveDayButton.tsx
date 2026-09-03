@@ -1,9 +1,10 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import type { Dictionary } from "@/lib/i18n";
 import { removeWorkoutDay } from "./actions";
 
-export function RemoveDayButton({ workoutDayId, disabled }: { workoutDayId: string; disabled: boolean }) {
+export function RemoveDayButton({ workoutDayId, disabled, t }: { workoutDayId: string; disabled: boolean; t: Dictionary }) {
   const [error, setError] = useState<string | null>(null);
   const [confirming, setConfirming] = useState(false);
   const [isPending, startTransition] = useTransition();
@@ -14,7 +15,7 @@ export function RemoveDayButton({ workoutDayId, disabled }: { workoutDayId: stri
       try {
         await removeWorkoutDay(workoutDayId);
       } catch (e) {
-        setError(e instanceof Error ? e.message : "No pudimos borrar el día.");
+        setError(e instanceof Error ? e.message : t.fitness.programs.removeDayError);
         setConfirming(false);
       }
     });
@@ -32,15 +33,15 @@ export function RemoveDayButton({ workoutDayId, disabled }: { workoutDayId: stri
             onClick={handleRemove}
             className="rounded-lg bg-danger px-2 py-1 text-xs font-medium text-white disabled:opacity-60"
           >
-            Confirmar
+            {t.common.confirm}
           </button>
           <button type="button" onClick={() => setConfirming(false)} className="text-xs text-ink-faint">
-            Cancelar
+            {t.common.cancel}
           </button>
         </div>
       ) : (
         <button type="button" onClick={() => setConfirming(true)} className="text-xs text-ink-faint hover:text-danger">
-          Borrar día
+          {t.fitness.programs.removeDay}
         </button>
       )}
       {error && <p className="mt-1 max-w-[160px] text-[11px] text-danger">{error}</p>}

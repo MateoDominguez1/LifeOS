@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { cn } from "@/lib/cn";
+import type { Dictionary } from "@/lib/i18n";
 import { completeOnboarding } from "./actions";
 import { Step1Welcome } from "./steps/Step1Welcome";
 import { Step2Personal } from "./steps/Step2Personal";
@@ -16,7 +17,7 @@ import { INITIAL_ONBOARDING_DATA, type OnboardingData } from "./types";
 
 const TOTAL_STEPS = 8;
 
-export function OnboardingWizard() {
+export function OnboardingWizard({ t }: { t: Dictionary }) {
   const router = useRouter();
   const [step, setStep] = useState(0);
   const [data, setData] = useState<OnboardingData>(INITIAL_ONBOARDING_DATA);
@@ -56,7 +57,7 @@ export function OnboardingWizard() {
         router.push("/nutrition");
         router.refresh();
       } catch {
-        setError("No pudimos guardar tu perfil. Intentá de nuevo.");
+        setError(t.nutrition.onboarding.saveError);
       }
     });
   }
@@ -70,14 +71,14 @@ export function OnboardingWizard() {
       </div>
 
       <div className="rounded-2xl border border-border-soft bg-surface p-6 shadow-[0_1px_2px_rgba(0,0,0,0.04),0_8px_24px_-12px_rgba(0,0,0,0.15)]">
-        {step === 0 && <Step1Welcome />}
-        {step === 1 && <Step2Personal data={data} update={update} />}
-        {step === 2 && <Step3Activity data={data} update={update} />}
-        {step === 3 && <Step4Goal data={data} update={update} />}
-        {step === 4 && <Step5Diet data={data} update={update} />}
-        {step === 5 && <Step6Tracking data={data} update={update} />}
-        {step === 6 && <Step7Goals data={data} update={update} />}
-        {step === 7 && <Step8Summary data={data} />}
+        {step === 0 && <Step1Welcome t={t.nutrition} />}
+        {step === 1 && <Step2Personal data={data} update={update} t={t.nutrition} />}
+        {step === 2 && <Step3Activity data={data} update={update} t={t.nutrition} />}
+        {step === 3 && <Step4Goal data={data} update={update} t={t.nutrition} />}
+        {step === 4 && <Step5Diet data={data} update={update} t={t.nutrition} />}
+        {step === 5 && <Step6Tracking data={data} update={update} t={t.nutrition} />}
+        {step === 6 && <Step7Goals data={data} update={update} t={t.nutrition} />}
+        {step === 7 && <Step8Summary data={data} t={t.nutrition} />}
       </div>
 
       {error && <p className="text-center text-sm text-danger">{error}</p>}
@@ -90,7 +91,7 @@ export function OnboardingWizard() {
             disabled={isPending}
             className="flex-1 rounded-xl border border-border px-4 py-2.5 font-display text-sm font-medium text-ink transition-colors hover:bg-surface-raised disabled:opacity-60"
           >
-            Atrás
+            {t.common.back}
           </button>
         )}
         {step < TOTAL_STEPS - 1 ? (
@@ -100,7 +101,7 @@ export function OnboardingWizard() {
             disabled={!canAdvance}
             className="flex-1 rounded-xl bg-nutrition px-4 py-2.5 font-display text-sm font-medium text-white transition-colors hover:opacity-90 disabled:opacity-40"
           >
-            Siguiente
+            {t.common.next}
           </button>
         ) : (
           <button
@@ -109,13 +110,13 @@ export function OnboardingWizard() {
             disabled={isPending}
             className="flex-1 rounded-xl bg-nutrition px-4 py-2.5 font-display text-sm font-medium text-white transition-colors hover:opacity-90 disabled:opacity-60"
           >
-            {isPending ? "Guardando..." : "Aceptar"}
+            {isPending ? t.common.saving : t.nutrition.onboarding.finishButton}
           </button>
         )}
       </div>
 
       <p className="text-center text-xs text-ink-faint">
-        Paso {step + 1} de {TOTAL_STEPS}
+        {t.nutrition.onboarding.stepLabel} {step + 1} {t.nutrition.onboarding.stepOfLabel} {TOTAL_STEPS}
       </p>
     </div>
   );

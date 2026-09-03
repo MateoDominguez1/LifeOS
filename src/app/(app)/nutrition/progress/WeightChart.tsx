@@ -1,10 +1,11 @@
 "use client";
 
 import { Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import type { Dictionary } from "@/lib/i18n";
 
-export function WeightChart({ data }: { data: { date: string; weightKg: number }[] }) {
+export function WeightChart({ data, t }: { data: { date: string; weightKg: number }[]; t: Dictionary }) {
   if (data.length < 2) {
-    return <p className="py-8 text-center text-sm text-ink-faint">Registrá tu peso al menos dos veces para ver la evolución.</p>;
+    return <p className="py-8 text-center text-sm text-ink-faint">{t.nutrition.progress.chartEmpty}</p>;
   }
 
   return (
@@ -14,7 +15,7 @@ export function WeightChart({ data }: { data: { date: string; weightKg: number }
           <XAxis dataKey="date" tick={{ fill: "var(--ink-faint)", fontSize: 11 }} tickFormatter={(v: string) => v.slice(5)} axisLine={false} tickLine={false} />
           <YAxis domain={["dataMin - 2", "dataMax + 2"]} tick={{ fill: "var(--ink-faint)", fontSize: 11 }} axisLine={false} tickLine={false} />
           <Tooltip
-            formatter={(value) => [`${value} kg`, "Peso"]}
+            formatter={(value) => [`${value} kg`, t.progress.weightTooltipLabel]}
             contentStyle={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 12, fontSize: 13 }}
           />
           <Line type="monotone" dataKey="weightKg" stroke="var(--nutrition)" strokeWidth={2} dot={{ r: 3 }} />

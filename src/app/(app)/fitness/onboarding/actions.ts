@@ -21,7 +21,7 @@ export async function completeOnboarding(data: OnboardingData) {
     data.trainingDays.length === 0 ||
     data.equipment.length === 0
   ) {
-    throw new Error("Faltan datos obligatorios del onboarding.");
+    throw new Error(t.fitness.onboarding.missingRequiredError);
   }
 
   if (
@@ -34,7 +34,7 @@ export async function completeOnboarding(data: OnboardingData) {
     data.weightGoalKg < 30 ||
     data.weightGoalKg > 300
   ) {
-    throw new Error("Alguno de los valores ingresados está fuera de rango.");
+    throw new Error(t.fitness.onboarding.outOfRangeError);
   }
 
   await prisma.bodyProfile.upsert({
@@ -79,7 +79,7 @@ export async function completeOnboarding(data: OnboardingData) {
         userId,
         domain: "BODY",
         metric: "BODY_WEIGHT",
-        label: `Peso objetivo: ${data.weightGoalKg} kg`,
+        label: `${t.fitness.onboarding.weightGoalLabelPrefix} ${data.weightGoalKg} kg`,
         targetValue: data.weightGoalKg,
         currentValue: data.weightKg,
       },

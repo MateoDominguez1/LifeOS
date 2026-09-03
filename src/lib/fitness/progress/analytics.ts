@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/db/prisma";
+import { getT } from "@/lib/i18n";
 import { estimate1RM } from "../calculations";
 import { getWeekRange } from "../today";
 
@@ -23,14 +24,17 @@ export async function getWeightHistory(userId: string, days = 90) {
 }
 
 export async function getMeasurementHistory(userId: string) {
-  const measurements = await prisma.bodyMeasurement.findMany({
-    where: { userId },
-    orderBy: { loggedAt: "asc" },
-  });
+  const [measurements, { t }] = await Promise.all([
+    prisma.bodyMeasurement.findMany({
+      where: { userId },
+      orderBy: { loggedAt: "asc" },
+    }),
+    getT(),
+  ]);
 
   const grouped: Record<string, { date: string; valueCm: number }[]> = {};
   for (const m of measurements) {
-    const label = m.type === "CUSTOM" ? m.customLabel ?? "Custom" : m.type;
+    const label = m.type === "CUSTOM" ? m.customLabel ?? t.measurementTypes.CUSTOM : t.measurementTypes[m.type];
     (grouped[label] ??= []).push({ date: toDateKey(m.loggedAt), valueCm: m.valueCm });
   }
   return grouped;

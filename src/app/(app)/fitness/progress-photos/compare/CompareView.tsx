@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import type { Dictionary } from "@/lib/i18n";
 
 export interface ComparePhoto {
   id: string;
@@ -9,13 +10,13 @@ export interface ComparePhoto {
   weightKgAtTime: number | null;
 }
 
-const ANGLES = [
-  { value: "FRONT", label: "Frente" },
-  { value: "SIDE", label: "Perfil" },
-  { value: "BACK", label: "Espalda" },
-] as const;
+export function CompareView({ photos, t }: { photos: ComparePhoto[]; t: Dictionary }) {
+  const ANGLES = [
+    { value: "FRONT", label: t.fitness.progressPhotos.angleFront },
+    { value: "SIDE", label: t.fitness.progressPhotos.angleSide },
+    { value: "BACK", label: t.fitness.progressPhotos.angleBack },
+  ] as const;
 
-export function CompareView({ photos }: { photos: ComparePhoto[] }) {
   const [angle, setAngle] = useState<string>(photos[0]?.angle ?? "FRONT");
   const [beforeId, setBeforeId] = useState<string | undefined>(undefined);
   const [afterId, setAfterId] = useState<string | undefined>(undefined);
@@ -47,12 +48,15 @@ export function CompareView({ photos }: { photos: ComparePhoto[] }) {
       </div>
 
       {filtered.length < 2 ? (
-        <p className="text-sm text-ink-soft">Necesitás al menos dos fotos de {ANGLES.find((a) => a.value === angle)?.label.toLowerCase()} para comparar.</p>
+        <p className="text-sm text-ink-soft">
+          {t.fitness.progressPhotos.needTwoPhotosPrefix} {ANGLES.find((a) => a.value === angle)?.label.toLowerCase()}{" "}
+          {t.fitness.progressPhotos.needTwoPhotosSuffix}
+        </p>
       ) : (
         <div className="grid grid-cols-2 gap-3">
           {[
-            { label: "Antes", photo: before, value: beforeId, onChange: setBeforeId },
-            { label: "Después", photo: after, value: afterId, onChange: setAfterId },
+            { label: t.fitness.progressPhotos.before, photo: before, value: beforeId, onChange: setBeforeId },
+            { label: t.fitness.progressPhotos.after, photo: after, value: afterId, onChange: setAfterId },
           ].map((side) => (
             <div key={side.label}>
               <select
@@ -78,9 +82,7 @@ export function CompareView({ photos }: { photos: ComparePhoto[] }) {
         </div>
       )}
 
-      <p className="text-xs text-ink-faint">
-        Las comparaciones visuales son aproximadas — la luz, la pose y la distancia de la cámara afectan cómo se ve una foto.
-      </p>
+      <p className="text-xs text-ink-faint">{t.fitness.progressPhotos.disclaimer}</p>
     </div>
   );
 }

@@ -1,14 +1,11 @@
 import Link from "next/link";
+import { format } from "date-fns";
 import { Card } from "@/components/ui/card";
 import { NutritionNav } from "@/components/nutrition/nutrition-nav";
 import { requireUserId } from "@/lib/auth/session";
 import { getMonthlyHistory, type Compliance } from "@/lib/nutrition/history/getMonthlyHistory";
-
-const WEEKDAYS = ["L", "M", "M", "J", "V", "S", "D"];
-const MONTH_NAMES = [
-  "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
-  "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre",
-];
+import { getT } from "@/lib/i18n";
+import { dateFnsLocales } from "@/lib/i18n/date-fns-locale";
 
 const COMPLIANCE_EMOJI: Record<Compliance, string> = {
   green: "🟢",
@@ -22,7 +19,7 @@ export default async function NutritionHistoryPage({
 }: {
   searchParams: Promise<{ year?: string; month?: string }>;
 }) {
-  const userId = await requireUserId();
+  const [userId, { locale, t }] = await Promise.all([requireUserId(), getT()]);
 
   const params = await searchParams;
   const now = new Date();
@@ -41,11 +38,22 @@ export default async function NutritionHistoryPage({
   const daysOnTarget = daysWithData.filter((d) => d.compliance === "green").length;
   const complianceRate = daysWithData.length > 0 ? Math.round((daysOnTarget / daysWithData.length) * 100) : null;
 
+  const weekdayLabels = [
+    t.weekdaysShort.mon,
+    t.weekdaysShort.tue,
+    t.weekdaysShort.wed,
+    t.weekdaysShort.thu,
+    t.weekdaysShort.fri,
+    t.weekdaysShort.sat,
+    t.weekdaysShort.sun,
+  ];
+  const monthLabel = format(new Date(year, month, 1), "MMMM yyyy", { locale: dateFnsLocales[locale] });
+
   return (
     <div>
       <NutritionNav />
 
-      <h1 className="mb-4 font-display text-xl font-bold text-ink">Historial</h1>
+      <h1 className="mb-4 font-display text-xl font-bold text-ink">{t.nutrition.history.title}</h1>
 
       <Card className="flex flex-col gap-4">
         <div className="flex items-center justify-between">
@@ -55,9 +63,7 @@ export default async function NutritionHistoryPage({
           >
             ←
           </Link>
-          <span className="font-display text-sm font-medium capitalize text-ink">
-            {MONTH_NAMES[month]} {year}
-          </span>
+          <span className="font-display text-sm font-medium capitalize text-ink">{monthLabel}</span>
           <Link
             href={`/nutrition/history?year=${nextMonth.year}&month=${nextMonth.month}`}
             className="rounded-lg border border-border px-3 py-1.5 text-sm text-ink"
@@ -68,12 +74,12 @@ export default async function NutritionHistoryPage({
 
         {complianceRate != null && (
           <p className="text-center text-sm text-ink-soft">
-            Cumplimiento del mes: <strong>{complianceRate}%</strong> ({daysOnTarget}/{daysWithData.length} días)
+            {t.nutrition.history.complianceLabel} <strong>{complianceRate}%</strong> ({daysOnTarget}/{daysWithData.length} {t.nutrition.history.daysUnit})
           </p>
         )}
 
         <div className="grid grid-cols-7 gap-1 text-center text-xs text-ink-faint">
-          {WEEKDAYS.map((w, i) => (
+          {weekdayLabels.map((w, i) => (
             <div key={i}>{w}</div>
           ))}
         </div>
@@ -99,9 +105,9 @@ export default async function NutritionHistoryPage({
         </div>
 
         <div className="flex justify-center gap-4 text-xs text-ink-faint">
-          <span>🟢 En objetivo</span>
-          <span>🟡 Cerca</span>
-          <span>🔴 Lejos</span>
+          <span>🟢 {t.nutrition.history.onTarget}</span>
+          <span>🟡 {t.nutrition.history.close}</span>
+          <span>🔴 {t.nutrition.history.far}</span>
         </div>
       </Card>
     </div>

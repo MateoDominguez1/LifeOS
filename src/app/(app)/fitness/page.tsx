@@ -8,27 +8,28 @@ import { ProgressBar } from "@/components/ui/progress-bar";
 import { FitnessNav } from "@/components/fitness/fitness-nav";
 import { getTodaysWorkoutDay, getWeekRange } from "@/lib/fitness/today";
 import { computeWorkoutStreak } from "@/lib/fitness/progress/streak";
-import { deriveDayType, DAY_TYPE_LABELS_ES } from "@/lib/fitness/day-type";
+import { deriveDayType } from "@/lib/fitness/day-type";
+import { getT, type Dictionary } from "@/lib/i18n";
 import { resolveRecommendation } from "./dashboard-actions";
 import { startWorkoutSession } from "./workout/actions";
 import { DayMarker } from "./calendar/DayMarker";
 
-function greeting(): string {
+function greeting(t: Dictionary): string {
   const hour = new Date().getHours();
-  if (hour < 12) return "Buen día";
-  if (hour < 18) return "Buenas tardes";
-  return "Buenas noches";
+  if (hour < 12) return t.fitness.workout.greetingMorning;
+  if (hour < 18) return t.fitness.workout.greetingAfternoon;
+  return t.fitness.workout.greetingEvening;
 }
 
-const QUICK_LINKS = [
-  { href: "/fitness/programs", label: "Programa", icon: ListChecks },
-  { href: "/fitness/calendar", label: "Calendario", icon: CalendarDays },
-  { href: "/fitness/history", label: "Historial", icon: History },
-  { href: "/fitness/records", label: "Récords", icon: Trophy },
-];
-
 export default async function FitnessPage() {
-  const userId = await requireUserId();
+  const [userId, { t }] = await Promise.all([requireUserId(), getT()]);
+
+  const QUICK_LINKS = [
+    { href: "/fitness/programs", label: t.fitness.workout.navPrograms, icon: ListChecks },
+    { href: "/fitness/calendar", label: t.fitness.workout.navCalendar, icon: CalendarDays },
+    { href: "/fitness/history", label: t.fitness.workout.navHistory, icon: History },
+    { href: "/fitness/records", label: t.fitness.workout.navRecords, icon: Trophy },
+  ];
 
   const profile = await prisma.fitnessProfile.findUnique({ where: { userId } });
   if (!profile) redirect("/fitness/onboarding");
@@ -67,32 +68,32 @@ export default async function FitnessPage() {
       <FitnessNav />
 
       <header className="mb-6 flex items-center justify-between">
-        <h1 className="font-display text-xl font-bold text-ink">{greeting()} 👋</h1>
+        <h1 className="font-display text-xl font-bold text-ink">{greeting(t)} 👋</h1>
       </header>
 
       <div className="flex flex-col gap-4">
         <Card domain="fitness">
-          <CardLabel>Entrenamiento de hoy</CardLabel>
+          <CardLabel>{t.fitness.workout.todaysWorkout}</CardLabel>
           {todays?.day ? (
             <div className="mt-2">
               <div className="text-lg font-semibold text-ink">
-                Día {todays.day.order + 1} · {DAY_TYPE_LABELS_ES[deriveDayType(todays.day.exercises.map((we) => we.exercise))]}
+                {t.fitness.workout.dayPrefix} {todays.day.order + 1} · {t.fitness.dayTypes[deriveDayType(todays.day.exercises.map((we) => we.exercise))]}
               </div>
               <p className="text-sm text-ink-soft">
-                {todays.day.exercises.length} ejercicios · ~{profile.sessionDurationMin ?? 60} min
+                {todays.day.exercises.length} {t.fitness.workout.exercisesCountSuffix} · ~{profile.sessionDurationMin ?? 60} min
               </p>
               {todaySession?.completedAt ? (
                 <Link
                   href={`/fitness/workout/${todaySession.id}/summary`}
                   className="mt-3 inline-flex items-center gap-2 rounded-xl bg-money-soft px-4 py-2.5 font-display text-sm font-medium text-money"
                 >
-                  Completado ✓ — ver resumen
+                  {t.fitness.workout.completedViewSummary}
                 </Link>
               ) : (
                 <div className="mt-3 flex flex-wrap items-center gap-2">
                   <form action={startWorkoutSession.bind(null, todays.day.id)}>
                     <button type="submit" className="rounded-xl bg-fitness px-4 py-2.5 font-display text-sm font-medium text-white hover:opacity-90">
-                      {todaySession ? "Continuar entrenamiento" : "Empezar entrenamiento"}
+                      {todaySession ? t.fitness.workout.continueWorkout : t.fitness.workout.startWorkout}
                     </button>
                   </form>
                   <DayMarker
@@ -101,12 +102,13 @@ export default async function FitnessPage() {
                     sessionId={todaySession?.id ?? null}
                     isCompleted={false}
                     canUndo={false}
+                    t={t}
                   />
                 </div>
               )}
             </div>
           ) : (
-            <p className="mt-2 text-sm text-ink-soft">Día de descanso 💤</p>
+            <p className="mt-2 text-sm text-ink-soft">{t.fitness.workout.restDayMessage}</p>
           )}
         </Card>
 
@@ -114,17 +116,17 @@ export default async function FitnessPage() {
           const payload = rec.payload as { exerciseName?: string; message?: string };
           return (
             <Card key={rec.id} className="flex flex-col gap-2">
-              <div className="text-sm font-medium text-ink">{payload.exerciseName || "Tu rutina"}</div>
+              <div className="text-sm font-medium text-ink">{payload.exerciseName || t.fitness.defaultRoutineName}</div>
               <p className="text-sm text-ink-soft">{payload.message}</p>
               <div className="flex gap-2">
                 <form action={resolveRecommendation.bind(null, rec.id, "ACCEPTED")}>
                   <button type="submit" className="rounded-lg bg-fitness-soft px-3 py-1.5 text-xs font-medium text-fitness">
-                    Aceptar
+                    {t.fitness.workout.accept}
                   </button>
                 </form>
                 <form action={resolveRecommendation.bind(null, rec.id, "DISMISSED")}>
                   <button type="submit" className="rounded-lg px-3 py-1.5 text-xs font-medium text-ink-faint hover:bg-surface-raised">
-                    Descartar
+                    {t.fitness.workout.dismiss}
                   </button>
                 </form>
               </div>
@@ -134,7 +136,7 @@ export default async function FitnessPage() {
 
         <Card>
           <div className="flex items-center justify-between">
-            <CardLabel>Esta semana</CardLabel>
+            <CardLabel>{t.fitness.workout.thisWeek}</CardLabel>
             <span className="text-sm text-ink-soft">
               {weeklyCompleted} / {weeklyGoal}
             </span>
@@ -143,7 +145,7 @@ export default async function FitnessPage() {
           <div className="mt-4 grid grid-cols-3 gap-3 text-center">
             <div>
               <div className="font-display text-lg font-semibold text-ink">{Math.round(volume)}</div>
-              <div className="text-xs text-ink-faint">kg volumen</div>
+              <div className="text-xs text-ink-faint">{t.fitness.workout.volumeUnit}</div>
             </div>
             <div>
               <div className="font-display text-lg font-semibold text-ink">{Math.round(durationSec / 60)}</div>
@@ -154,7 +156,7 @@ export default async function FitnessPage() {
               <div className="text-xs text-ink-faint">PRs</div>
             </div>
           </div>
-          {streak > 0 && <p className="mt-3 text-sm text-ink-soft">🔥 {streak} semanas seguidas entrenando</p>}
+          {streak > 0 && <p className="mt-3 text-sm text-ink-soft">🔥 {streak} {t.fitness.workout.streakSuffix}</p>}
         </Card>
 
         <div className="grid grid-cols-2 gap-3">
@@ -172,14 +174,14 @@ export default async function FitnessPage() {
         </div>
 
         <Card>
-          <CardLabel>Cuerpo</CardLabel>
+          <CardLabel>{t.fitness.workout.body}</CardLabel>
           {latestWeight ? (
             <p className="mt-2 text-sm text-ink">
               {latestWeight.weightKg} kg
-              {weightGoal && <span className="text-ink-faint"> · objetivo {Number(weightGoal.targetValue)} kg</span>}
+              {weightGoal && <span className="text-ink-faint"> · {t.fitness.workout.weightGoalSuffix} {Number(weightGoal.targetValue)} kg</span>}
             </p>
           ) : (
-            <p className="mt-2 text-sm text-ink-soft">Todavía no registraste tu peso.</p>
+            <p className="mt-2 text-sm text-ink-soft">{t.fitness.workout.noWeightLogged}</p>
           )}
         </Card>
       </div>

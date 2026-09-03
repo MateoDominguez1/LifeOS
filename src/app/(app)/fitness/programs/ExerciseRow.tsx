@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import type { Dictionary } from "@/lib/i18n";
 import { moveExercise, removeExercise, updateExerciseTargets } from "./actions";
 
 export interface ExerciseRowData {
@@ -15,7 +16,7 @@ export interface ExerciseRowData {
   canMoveDown: boolean;
 }
 
-export function ExerciseRow({ data }: { data: ExerciseRowData }) {
+export function ExerciseRow({ data, t }: { data: ExerciseRowData; t: Dictionary }) {
   const [sets, setSets] = useState(data.targetSets);
   const [repsMin, setRepsMin] = useState(data.targetRepsMin);
   const [repsMax, setRepsMax] = useState(data.targetRepsMax);
@@ -55,13 +56,13 @@ export function ExerciseRow({ data }: { data: ExerciseRowData }) {
             onClick={() => startTransition(() => removeExercise(data.id))}
             className="rounded px-1.5 py-0.5 text-xs text-danger hover:bg-danger-soft"
           >
-            Quitar
+            {t.fitness.programs.remove}
           </button>
         </div>
       </div>
       <div className="mt-2 flex flex-wrap items-center gap-3 text-xs text-ink-soft">
         <label className="flex items-center gap-1">
-          Sets
+          {t.fitness.programs.setsLabel}
           <input
             type="number"
             value={sets}
@@ -71,7 +72,7 @@ export function ExerciseRow({ data }: { data: ExerciseRowData }) {
           />
         </label>
         <label className="flex items-center gap-1">
-          Reps
+          {t.fitness.programs.repsLabel}
           <input
             type="number"
             value={repsMin}
@@ -89,7 +90,7 @@ export function ExerciseRow({ data }: { data: ExerciseRowData }) {
           />
         </label>
         <label className="flex items-center gap-1">
-          Descanso (s)
+          {t.fitness.programs.restLabel}
           <input
             type="number"
             value={rest}

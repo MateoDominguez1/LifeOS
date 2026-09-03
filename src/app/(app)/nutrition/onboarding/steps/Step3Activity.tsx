@@ -1,25 +1,28 @@
 import type { ActivityLevel } from "@/lib/nutrition/types";
 import type { OnboardingData } from "../types";
 import { Field, OptionCard, StepShell, TextInput } from "@/components/nutrition/form";
-
-const ACTIVITY_OPTIONS: { value: ActivityLevel; label: string; description: string }[] = [
-  { value: "SEDENTARY", label: "Sedentario", description: "Poco o nada de ejercicio" },
-  { value: "LIGHT", label: "Ligero", description: "Ejercicio 1-3 días/semana" },
-  { value: "MODERATE", label: "Moderado", description: "Ejercicio 3-5 días/semana" },
-  { value: "ACTIVE", label: "Activo", description: "Ejercicio 6-7 días/semana" },
-  { value: "VERY_ACTIVE", label: "Muy activo", description: "Entrenamiento intenso + trabajo físico" },
-];
+import type { Dictionary } from "@/lib/i18n";
 
 export function Step3Activity({
   data,
   update,
+  t,
 }: {
   data: OnboardingData;
   update: (patch: Partial<OnboardingData>) => void;
+  t: Dictionary["nutrition"];
 }) {
+  const ACTIVITY_OPTIONS: { value: ActivityLevel; label: string; description: string }[] = [
+    { value: "SEDENTARY", label: t.common.activitySedentary, description: t.onboarding.activitySedentaryDesc },
+    { value: "LIGHT", label: t.common.activityLight, description: t.onboarding.activityLightDesc },
+    { value: "MODERATE", label: t.common.activityModerate, description: t.onboarding.activityModerateDesc },
+    { value: "ACTIVE", label: t.common.activityActive, description: t.onboarding.activityActiveDesc },
+    { value: "VERY_ACTIVE", label: t.common.activityVeryActive, description: t.onboarding.activityVeryActiveDesc },
+  ];
+
   return (
-    <StepShell title="Actividad física" subtitle="Para estimar cuánta energía gastás por día.">
-      <Field label="Nivel de actividad diaria">
+    <StepShell title={t.onboarding.step3Title} subtitle={t.onboarding.step3Subtitle}>
+      <Field label={t.onboarding.activityLevelLabel}>
         <div className="space-y-2">
           {ACTIVITY_OPTIONS.map((opt) => (
             <OptionCard
@@ -34,25 +37,25 @@ export function Step3Activity({
         </div>
       </Field>
 
-      <Field label="Tu trabajo es...">
+      <Field label={t.onboarding.jobTypeLabel}>
         <div className="grid grid-cols-2 gap-2">
           <OptionCard
             value={true}
             currentValue={data.isSedentaryJob}
-            label="Sedentario"
+            label={t.onboarding.jobSedentary}
             onSelect={(isSedentaryJob) => update({ isSedentaryJob })}
           />
           <OptionCard
             value={false}
             currentValue={data.isSedentaryJob}
-            label="De movimiento"
+            label={t.onboarding.jobActive}
             onSelect={(isSedentaryJob) => update({ isSedentaryJob })}
           />
         </div>
       </Field>
 
       <div className="grid grid-cols-2 gap-3">
-        <Field label="Días de entrenamiento/sem">
+        <Field label={t.onboarding.trainingDaysLabel}>
           <TextInput
             type="number"
             min={0}
@@ -65,7 +68,7 @@ export function Step3Activity({
             }
           />
         </Field>
-        <Field label="Duración (min)">
+        <Field label={t.onboarding.trainingDurationLabel}>
           <TextInput
             type="number"
             min={0}
@@ -80,10 +83,10 @@ export function Step3Activity({
         </Field>
       </div>
 
-      <Field label="Otros deportes — opcional">
+      <Field label={t.onboarding.otherSportsLabel}>
         <TextInput
           type="text"
-          placeholder="Ej: fútbol los sábados"
+          placeholder={t.onboarding.otherSportsPlaceholder}
           value={data.otherSports}
           onChange={(e) => update({ otherSports: e.target.value })}
         />

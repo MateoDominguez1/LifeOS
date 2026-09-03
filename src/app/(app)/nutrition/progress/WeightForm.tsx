@@ -1,9 +1,10 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import type { Dictionary } from "@/lib/i18n";
 import { logWeight } from "./actions";
 
-export function WeightForm({ initialWeight }: { initialWeight: number | null }) {
+export function WeightForm({ initialWeight, t }: { initialWeight: number | null; t: Dictionary }) {
   const [weight, setWeight] = useState(initialWeight?.toString() ?? "");
   const [isPending, startTransition] = useTransition();
   const [saved, setSaved] = useState(false);
@@ -20,7 +21,7 @@ export function WeightForm({ initialWeight }: { initialWeight: number | null }) 
         setSaved(true);
         setTimeout(() => setSaved(false), 2000);
       } catch {
-        setError("Peso inválido.");
+        setError(t.nutrition.progress.invalidWeight);
       }
     });
   }
@@ -33,7 +34,7 @@ export function WeightForm({ initialWeight }: { initialWeight: number | null }) 
           step={0.1}
           value={weight}
           onChange={(e) => setWeight(e.target.value)}
-          placeholder="Peso (kg)"
+          placeholder={t.nutrition.progress.weightPlaceholder}
           className="w-28 rounded-lg border border-border bg-surface px-3 py-2 text-sm text-ink"
         />
         <button
@@ -41,7 +42,7 @@ export function WeightForm({ initialWeight }: { initialWeight: number | null }) 
           disabled={isPending}
           className="rounded-lg bg-nutrition px-3 py-2 font-display text-sm font-medium text-white disabled:opacity-60"
         >
-          {isPending ? "Guardando..." : "Registrar"}
+          {isPending ? t.common.saving : t.nutrition.progress.register}
         </button>
         {saved && <span className="text-xs text-money">✓</span>}
       </form>

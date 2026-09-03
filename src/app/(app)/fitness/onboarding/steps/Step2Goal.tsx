@@ -1,22 +1,31 @@
 import type { FitnessGoalType } from "@/generated/prisma/client";
 import type { OnboardingData } from "../types";
 import { Chip, Field, StepShell } from "@/components/fitness/form";
+import type { Dictionary } from "@/lib/i18n";
 
-export const GOAL_OPTIONS: { value: FitnessGoalType; label: string }[] = [
-  { value: "GAIN_MUSCLE", label: "Ganar músculo" },
-  { value: "LOSE_FAT", label: "Perder grasa" },
-  { value: "RECOMP", label: "Recomposición corporal" },
-  { value: "GAIN_STRENGTH", label: "Ganar fuerza" },
-  { value: "IMPROVE_CONDITIONING", label: "Mejorar condición física" },
-  { value: "MAINTAIN", label: "Mantener" },
-  { value: "OTHER", label: "Otro" },
-];
+export function Step2Goal({
+  data,
+  update,
+  t,
+}: {
+  data: OnboardingData;
+  update: (patch: Partial<OnboardingData>) => void;
+  t: Dictionary;
+}) {
+  const GOAL_OPTIONS: { value: FitnessGoalType; label: string }[] = [
+    { value: "GAIN_MUSCLE", label: t.fitness.onboarding.goalGainMuscle },
+    { value: "LOSE_FAT", label: t.fitness.onboarding.goalLoseFat },
+    { value: "RECOMP", label: t.fitness.onboarding.goalRecomp },
+    { value: "GAIN_STRENGTH", label: t.fitness.onboarding.goalGainStrength },
+    { value: "IMPROVE_CONDITIONING", label: t.fitness.onboarding.goalImproveConditioning },
+    { value: "MAINTAIN", label: t.fitness.onboarding.goalMaintain },
+    { value: "OTHER", label: t.fitness.onboarding.goalOther },
+  ];
 
-export function Step2Goal({ data, update }: { data: OnboardingData; update: (patch: Partial<OnboardingData>) => void }) {
   const secondaryOptions = GOAL_OPTIONS.filter((o) => o.value !== data.primaryGoal);
 
   return (
-    <StepShell title="¿Cuál es tu objetivo principal?">
+    <StepShell title={t.fitness.onboarding.step2Title}>
       <div className="grid grid-cols-2 gap-2">
         {GOAL_OPTIONS.map((opt) => (
           <Chip
@@ -28,7 +37,7 @@ export function Step2Goal({ data, update }: { data: OnboardingData; update: (pat
         ))}
       </div>
 
-      <Field label="Objetivos secundarios — opcional">
+      <Field label={t.fitness.onboarding.secondaryGoalsLabel}>
         <div className="grid grid-cols-2 gap-2">
           {secondaryOptions.map((opt) => (
             <Chip

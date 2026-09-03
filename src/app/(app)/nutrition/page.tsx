@@ -13,12 +13,13 @@ import { WaterButton } from "@/components/nutrition/WaterButton";
 import { getDailyProgress } from "@/lib/nutrition/dashboard/getDailyProgress";
 import { generateInsights } from "@/lib/nutrition/dashboard/insights";
 import { suggestMeals } from "@/lib/nutrition/recipes/suggestMeals";
+import { getT, INTL_LOCALES, type Dictionary } from "@/lib/i18n";
 
 const MEAL_SLOTS = [
-  { type: "BREAKFAST", label: "Desayuno", emoji: "🌅" },
-  { type: "LUNCH", label: "Almuerzo", emoji: "☀️" },
-  { type: "DINNER", label: "Cena", emoji: "🌙" },
-  { type: "SNACK", label: "Snack", emoji: "🍎" },
+  { type: "BREAKFAST", emoji: "🌅" },
+  { type: "LUNCH", emoji: "☀️" },
+  { type: "DINNER", emoji: "🌙" },
+  { type: "SNACK", emoji: "🍎" },
 ] as const;
 
 const INSIGHT_STYLES: Record<string, string> = {
@@ -35,23 +36,15 @@ const INSIGHT_EMOJI: Record<string, string> = {
   neutral: "💬",
 };
 
-function greeting(): string {
+function greeting(t: Dictionary["dashboard"]): string {
   const hour = new Date().getHours();
-  if (hour < 12) return "Buen día";
-  if (hour < 20) return "Buenas tardes";
-  return "Buenas noches";
-}
-
-function formattedDate(): string {
-  return new Date().toLocaleDateString("es-AR", {
-    weekday: "long",
-    day: "numeric",
-    month: "long",
-  });
+  if (hour < 12) return t.greetingMorning;
+  if (hour < 20) return t.greetingAfternoon;
+  return t.greetingEvening;
 }
 
 export default async function NutritionPage() {
-  const userId = await requireUserId();
+  const [userId, { locale, t }] = await Promise.all([requireUserId(), getT()]);
 
   const profile = await prisma.nutritionProfile.findUnique({ where: { userId } });
   if (!profile) redirect("/nutrition/onboarding");
@@ -82,13 +75,19 @@ export default async function NutritionPage() {
       <NutritionNav />
 
       <header className="mb-6">
-        <h1 className="font-display text-xl font-bold text-ink">{greeting()} 👋</h1>
-        <p className="text-sm capitalize text-ink-soft">{formattedDate()}</p>
+        <h1 className="font-display text-xl font-bold text-ink">{greeting(t.dashboard)} 👋</h1>
+        <p className="text-sm text-ink-soft">
+          {new Date().toLocaleDateString(INTL_LOCALES[locale], {
+            weekday: "long",
+            day: "numeric",
+            month: "long",
+          })}
+        </p>
       </header>
 
       {!goals ? (
         <Card className="text-center text-sm text-ink-soft">
-          Todavía no configuraste tus objetivos nutricionales.
+          {t.nutrition.dashboard.goalsNotConfigured}
         </Card>
       ) : (
         <div className="flex flex-col gap-4">
@@ -99,20 +98,20 @@ export default async function NutritionPage() {
             </div>
             <p className="mt-1 text-sm text-ink-soft">
               {caloriesRemaining >= 0
-                ? `${caloriesRemaining} kcal restantes`
-                : `${Math.abs(caloriesRemaining)} kcal por encima del objetivo`}
+                ? `${caloriesRemaining} ${t.nutrition.dashboard.caloriesRemainingSuffix}`
+                : `${Math.abs(caloriesRemaining)} ${t.nutrition.dashboard.caloriesOverSuffix}`}
             </p>
             <ProgressBar value={caloriesPct} tone={caloriesRemaining < 0 ? "danger" : "nutrition"} className="mt-3" />
           </Card>
 
           <Card className="flex flex-col gap-3">
-            {goals.trackProtein && <MacroBar label="Proteínas" value={consumed.protein} goal={goals.protein} unit="g" />}
-            {goals.trackCarbs && <MacroBar label="Carbohidratos" value={consumed.carbs} goal={goals.carbs} unit="g" />}
-            {goals.trackFat && <MacroBar label="Grasas" value={consumed.fat} goal={goals.fat} unit="g" />}
-            {goals.trackFiber && <MacroBar label="Fibra" value={consumed.fiber} goal={goals.fiber} unit="g" />}
+            {goals.trackProtein && <MacroBar label={t.nutrition.onboarding.trackProtein} value={consumed.protein} goal={goals.protein} unit="g" />}
+            {goals.trackCarbs && <MacroBar label={t.nutrition.onboarding.trackCarbs} value={consumed.carbs} goal={goals.carbs} unit="g" />}
+            {goals.trackFat && <MacroBar label={t.nutrition.onboarding.trackFat} value={consumed.fat} goal={goals.fat} unit="g" />}
+            {goals.trackFiber && <MacroBar label={t.nutrition.onboarding.trackFiber} value={consumed.fiber} goal={goals.fiber} unit="g" />}
             {goals.trackWater && (
               <div className="space-y-1.5">
-                <MacroBar label="Agua" value={waterLiters} goal={goals.water} unit="L" decimals={1} />
+                <MacroBar label={t.nutrition.onboarding.trackWater} value={waterLiters} goal={goals.water} unit="L" decimals={1} />
                 <div className="flex justify-end gap-2 pt-1">
                   <WaterButton amountMl={250} />
                   <WaterButton amountMl={500} />
@@ -136,15 +135,15 @@ export default async function NutritionPage() {
       )}
 
       <section className="mt-6 flex flex-col gap-3">
-        <h2 className="font-display text-sm font-medium text-ink-soft">Comidas de hoy</h2>
+        <h2 className="font-display text-sm font-medium text-ink-soft">{t.nutrition.dashboard.todaysMeals}</h2>
         {mealsByType.map((slot) => (
           <Card key={slot.type} className="p-3">
             <p className="mb-1 text-xs font-medium text-ink-faint">
-              {slot.emoji} {slot.label}
+              {slot.emoji} {t.mealTypes[slot.type]}
             </p>
             {slot.meals.length === 0 ? (
               <Link href="/nutrition/add" className="text-sm text-ink-faint underline underline-offset-2 hover:text-ink">
-                Agregar comida
+                {t.nutrition.dashboard.addMealLink}
               </Link>
             ) : (
               <div className="flex flex-col gap-2">
@@ -176,15 +175,15 @@ export default async function NutritionPage() {
         href="/nutrition/add"
         className="mt-6 flex items-center justify-center gap-2 rounded-xl bg-nutrition px-4 py-3 text-center font-display text-sm font-medium text-white hover:opacity-90"
       >
-        <Camera size={16} /> Analizar comida
+        <Camera size={16} /> {t.nutrition.dashboard.analyzeMealCta}
       </Link>
 
       <div className="mt-4 flex justify-center gap-4">
         <Link href="/nutrition/foods" className="text-sm text-ink-faint underline underline-offset-2 hover:text-ink">
-          Buscar alimentos
+          {t.nutrition.dashboard.searchFoodsLink}
         </Link>
         <Link href="/nutrition/recipes" className="text-sm text-ink-faint underline underline-offset-2 hover:text-ink">
-          Mis recetas
+          {t.nutrition.dashboard.myRecipesLink}
         </Link>
       </div>
     </div>

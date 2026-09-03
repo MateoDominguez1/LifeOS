@@ -2,13 +2,16 @@ import { useMemo } from "react";
 import { calculateNutritionGoals } from "@/lib/nutrition/calculations";
 import type { OnboardingData } from "../types";
 import { Field, StepShell, TextInput, ToggleRow } from "@/components/nutrition/form";
+import type { Dictionary } from "@/lib/i18n";
 
 export function Step7Goals({
   data,
   update,
+  t,
 }: {
   data: OnboardingData;
   update: (patch: Partial<OnboardingData>) => void;
+  t: Dictionary["nutrition"];
 }) {
   const computed = useMemo(() => {
     if (!data.sex || !data.age || !data.heightCm || !data.weightKg || !data.activityLevel || !data.goalType) {
@@ -27,67 +30,67 @@ export function Step7Goals({
 
   if (!computed) {
     return (
-      <StepShell title="Tus objetivos nutricionales">
-        <p className="text-sm text-ink-soft">Completá los pasos anteriores para calcular tus objetivos.</p>
+      <StepShell title={t.onboarding.step7Title}>
+        <p className="text-sm text-ink-soft">{t.onboarding.step7Incomplete}</p>
       </StepShell>
     );
   }
 
   return (
-    <StepShell title="Tus objetivos nutricionales" subtitle="Calculados a partir de tus datos. Podés personalizarlos.">
+    <StepShell title={t.onboarding.step7Title} subtitle={t.onboarding.step7Subtitle}>
       <div className="grid grid-cols-3 gap-3 rounded-2xl border border-border-soft p-4">
-        <Stat label="Calorías" value={`${data.manualCalories ?? computed.calories}`} unit="kcal" />
-        <Stat label="Proteína" value={`${data.manualProtein ?? computed.protein}`} unit="g" />
-        <Stat label="Carbos" value={`${data.manualCarbs ?? computed.carbs}`} unit="g" />
-        <Stat label="Grasas" value={`${data.manualFat ?? computed.fat}`} unit="g" />
-        <Stat label="Fibra" value={`${data.manualFiber ?? computed.fiber}`} unit="g" />
-        <Stat label="Agua" value={`${data.manualWater ?? computed.water}`} unit="L" />
+        <Stat label={t.onboarding.statCaloriesLabel} value={`${data.manualCalories ?? computed.calories}`} unit="kcal" />
+        <Stat label={t.onboarding.statProteinLabel} value={`${data.manualProtein ?? computed.protein}`} unit="g" />
+        <Stat label={t.onboarding.statCarbsLabel} value={`${data.manualCarbs ?? computed.carbs}`} unit="g" />
+        <Stat label={t.onboarding.statFatLabel} value={`${data.manualFat ?? computed.fat}`} unit="g" />
+        <Stat label={t.onboarding.statFiberLabel} value={`${data.manualFiber ?? computed.fiber}`} unit="g" />
+        <Stat label={t.onboarding.statWaterLabel} value={`${data.manualWater ?? computed.water}`} unit="L" />
       </div>
 
       <ToggleRow
-        label="Personalizar manualmente"
+        label={t.onboarding.customizeManually}
         checked={data.isManualOverride}
         onChange={(isManualOverride) => update({ isManualOverride })}
       />
 
       {data.isManualOverride && (
         <div className="grid grid-cols-2 gap-3">
-          <Field label="Calorías (kcal)">
+          <Field label={t.common.caloriesLabel}>
             <TextInput
               type="number"
               value={data.manualCalories ?? computed.calories}
               onChange={(e) => update({ manualCalories: Number(e.target.value) })}
             />
           </Field>
-          <Field label="Proteína (g)">
+          <Field label={t.common.proteinLabel}>
             <TextInput
               type="number"
               value={data.manualProtein ?? computed.protein}
               onChange={(e) => update({ manualProtein: Number(e.target.value) })}
             />
           </Field>
-          <Field label="Carbohidratos (g)">
+          <Field label={t.common.carbsLabel}>
             <TextInput
               type="number"
               value={data.manualCarbs ?? computed.carbs}
               onChange={(e) => update({ manualCarbs: Number(e.target.value) })}
             />
           </Field>
-          <Field label="Grasas (g)">
+          <Field label={t.common.fatLabel}>
             <TextInput
               type="number"
               value={data.manualFat ?? computed.fat}
               onChange={(e) => update({ manualFat: Number(e.target.value) })}
             />
           </Field>
-          <Field label="Fibra (g)">
+          <Field label={t.common.fiberLabel}>
             <TextInput
               type="number"
               value={data.manualFiber ?? computed.fiber}
               onChange={(e) => update({ manualFiber: Number(e.target.value) })}
             />
           </Field>
-          <Field label="Agua (L)">
+          <Field label={t.common.waterLabel}>
             <TextInput
               type="number"
               step={0.1}

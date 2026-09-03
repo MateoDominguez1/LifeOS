@@ -3,17 +3,18 @@ import { notFound } from "next/navigation";
 import { prisma } from "@/lib/db/prisma";
 import { requireUserId } from "@/lib/auth/session";
 import { Card } from "@/components/ui/card";
-
-const PR_LABELS: Record<string, string> = {
-  MAX_WEIGHT: "Peso máximo",
-  MAX_REPS: "Más repeticiones",
-  MAX_VOLUME: "Más volumen",
-  ESTIMATED_1RM: "1RM estimado",
-};
+import { getT } from "@/lib/i18n";
 
 export default async function WorkoutSummaryPage({ params }: { params: Promise<{ sessionId: string }> }) {
-  const userId = await requireUserId();
+  const [userId, { t }] = await Promise.all([requireUserId(), getT()]);
   const { sessionId } = await params;
+
+  const PR_LABELS: Record<string, string> = {
+    MAX_WEIGHT: t.fitness.records.prMaxWeight,
+    MAX_REPS: t.fitness.records.prMaxReps,
+    MAX_VOLUME: t.fitness.records.prMaxVolume,
+    ESTIMATED_1RM: t.fitness.records.prEstimated1RM,
+  };
 
   const session = await prisma.workoutSession.findUnique({
     where: { id: sessionId },
@@ -31,7 +32,7 @@ export default async function WorkoutSummaryPage({ params }: { params: Promise<{
   return (
     <div className="mx-auto max-w-lg space-y-4">
       <header>
-        <h1 className="font-display text-xl font-bold text-ink">Entrenamiento completo 🎉</h1>
+        <h1 className="font-display text-xl font-bold text-ink">{t.fitness.summary.title}</h1>
         <p className="text-sm text-ink-soft">{session.workoutDay?.label}</p>
       </header>
 
@@ -39,22 +40,22 @@ export default async function WorkoutSummaryPage({ params }: { params: Promise<{
         <div className="grid grid-cols-3 gap-3 text-center">
           <div>
             <div className="font-display text-lg font-semibold text-ink">{Math.round((session.durationSec ?? 0) / 60)}</div>
-            <div className="text-xs text-ink-faint">min</div>
+            <div className="text-xs text-ink-faint">{t.fitness.summary.minUnit}</div>
           </div>
           <div>
             <div className="font-display text-lg font-semibold text-ink">{session.sets.length}</div>
-            <div className="text-xs text-ink-faint">sets</div>
+            <div className="text-xs text-ink-faint">{t.fitness.workout.setsUnit}</div>
           </div>
           <div>
             <div className="font-display text-lg font-semibold text-ink">{Math.round(volume)}</div>
-            <div className="text-xs text-ink-faint">kg volumen</div>
+            <div className="text-xs text-ink-faint">{t.fitness.workout.volumeUnit}</div>
           </div>
         </div>
       </Card>
 
       {newPRs.length > 0 && (
         <Card domain="fitness">
-          <h2 className="font-display text-sm font-semibold text-ink">🏆 ¡Nuevos récords personales!</h2>
+          <h2 className="font-display text-sm font-semibold text-ink">{t.fitness.summary.newPRsTitle}</h2>
           <div className="mt-2 space-y-1">
             {newPRs.map((pr) => (
               <div key={pr.id} className="flex justify-between text-sm">
@@ -72,7 +73,7 @@ export default async function WorkoutSummaryPage({ params }: { params: Promise<{
         href="/fitness"
         className="block rounded-xl bg-fitness px-4 py-3 text-center font-display text-sm font-medium text-white hover:opacity-90"
       >
-        Volver al inicio
+        {t.fitness.summary.backHome}
       </Link>
     </div>
   );

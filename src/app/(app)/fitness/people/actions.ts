@@ -3,12 +3,13 @@
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/db/prisma";
 import { requireUserId } from "@/lib/auth/session";
+import { getT } from "@/lib/i18n";
 
 export async function createManagedProfile(input: { name: string; relationship?: string }) {
-  const userId = await requireUserId();
+  const [userId, { t }] = await Promise.all([requireUserId(), getT()]);
 
   if (!input.name.trim()) {
-    throw new Error("El nombre es obligatorio.");
+    throw new Error(t.fitness.people.nameRequiredError);
   }
 
   const profile = await prisma.managedProfile.create({
@@ -20,13 +21,13 @@ export async function createManagedProfile(input: { name: string; relationship?:
 }
 
 export async function updateManagedProfile(id: string, input: { name: string; relationship?: string }) {
-  const userId = await requireUserId();
+  const [userId, { t }] = await Promise.all([requireUserId(), getT()]);
 
   const profile = await prisma.managedProfile.findUnique({ where: { id } });
-  if (!profile || profile.ownerId !== userId) throw new Error("No autorizado");
+  if (!profile || profile.ownerId !== userId) throw new Error(t.fitness.common.notAuthorizedError);
 
   if (!input.name.trim()) {
-    throw new Error("El nombre es obligatorio.");
+    throw new Error(t.fitness.people.nameRequiredError);
   }
 
   await prisma.managedProfile.update({

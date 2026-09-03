@@ -1,13 +1,10 @@
 import { StepShell } from "@/components/nutrition/form";
+import type { Dictionary } from "@/lib/i18n";
 
-export function Step1Welcome() {
+export function Step1Welcome({ t }: { t: Dictionary["nutrition"] }) {
   return (
-    <StepShell emoji="👋" title="Vamos a configurar tu objetivo">
-      <p className="text-sm text-ink-soft">
-        Son 8 pasos cortos. Con esto calculamos tus calorías y macros
-        objetivo del día — vas a poder ajustarlos manualmente cuando
-        quieras desde tu perfil.
-      </p>
+    <StepShell emoji="👋" title={t.onboarding.step1Title}>
+      <p className="text-sm text-ink-soft">{t.onboarding.step1Body}</p>
     </StepShell>
   );
 }

@@ -3,20 +3,21 @@
 import { revalidatePath } from "next/cache";
 import { requireUserId } from "@/lib/auth/session";
 import * as photoService from "@/lib/fitness/photos/service";
+import { getT } from "@/lib/i18n";
 
 export interface UploadPhotoState {
   error?: string;
 }
 
 export async function uploadPhoto(_prev: UploadPhotoState, formData: FormData): Promise<UploadPhotoState> {
-  const userId = await requireUserId();
+  const [userId, { t }] = await Promise.all([requireUserId(), getT()]);
 
   const file = formData.get("file");
   const angle = String(formData.get("angle") ?? "FRONT");
   const notes = formData.get("notes");
 
   if (!(file instanceof File)) {
-    return { error: "Choose a photo to upload" };
+    return { error: t.fitness.progressPhotos.chooseFileError };
   }
 
   const result = await photoService.uploadPhoto(userId, file, angle, notes ? String(notes) : undefined);

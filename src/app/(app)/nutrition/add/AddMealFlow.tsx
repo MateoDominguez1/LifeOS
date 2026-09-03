@@ -3,6 +3,7 @@
 import Image from "next/image";
 import { useRef, useState } from "react";
 import { compressImage } from "@/lib/nutrition/client/compressImage";
+import type { Dictionary } from "@/lib/i18n";
 import { analyzeMealDescription, analyzeMealPhoto } from "./actions";
 import { ReviewMeal } from "./ReviewMeal";
 import type { DraftMeal } from "./types";
@@ -13,7 +14,7 @@ type Stage =
   | { name: "review"; photoDataUrl?: string; draft: DraftMeal }
   | { name: "error"; message: string };
 
-export function AddMealFlow() {
+export function AddMealFlow({ t }: { t: Dictionary }) {
   const [mode, setMode] = useState<"photo" | "describe">("photo");
   const [stage, setStage] = useState<Stage>({ name: "idle" });
   const [description, setDescription] = useState("");
@@ -29,8 +30,7 @@ export function AddMealFlow() {
       console.error("Fallo el análisis de la foto:", error);
       setStage({
         name: "error",
-        message:
-          "No pudimos analizar la foto en este momento. Puede ser un problema temporal del servicio de IA — probá de nuevo en unos segundos.",
+        message: t.nutrition.addMeal.photoErrorFallback,
       });
     }
   }
@@ -45,13 +45,20 @@ export function AddMealFlow() {
       console.error("Fallo el análisis de la descripción:", error);
       setStage({
         name: "error",
-        message: "No pudimos analizar la descripción en este momento. Probá de nuevo en unos segundos, o revisá cómo la escribiste.",
+        message: t.nutrition.addMeal.descriptionErrorFallback,
       });
     }
   }
 
   if (stage.name === "review") {
-    return <ReviewMeal photoDataUrl={stage.photoDataUrl} draft={stage.draft} onRestart={() => setStage({ name: "idle" })} />;
+    return (
+      <ReviewMeal
+        photoDataUrl={stage.photoDataUrl}
+        draft={stage.draft}
+        onRestart={() => setStage({ name: "idle" })}
+        t={t}
+      />
+    );
   }
 
   return (
@@ -59,16 +66,23 @@ export function AddMealFlow() {
       {stage.name === "analyzing" && (
         <>
           {stage.photoDataUrl && (
-            <Image src={stage.photoDataUrl} alt="Comida a analizar" width={224} height={224} unoptimized className="h-56 w-56 rounded-2xl object-cover" />
+            <Image
+              src={stage.photoDataUrl}
+              alt={t.nutrition.addMeal.photoAlt}
+              width={224}
+              height={224}
+              unoptimized
+              className="h-56 w-56 rounded-2xl object-cover"
+            />
           )}
-          <p className="animate-pulse font-display text-sm font-medium text-ink-soft">Analizando tu comida...</p>
+          <p className="animate-pulse font-display text-sm font-medium text-ink-soft">{t.nutrition.addMeal.analyzing}</p>
         </>
       )}
 
       {stage.name === "idle" && (
         <>
           <div className="text-5xl">{mode === "photo" ? "📸" : "✍️"}</div>
-          <h1 className="font-display text-xl font-bold tracking-tight text-ink">Analizar comida</h1>
+          <h1 className="font-display text-xl font-bold tracking-tight text-ink">{t.nutrition.addMeal.title}</h1>
 
           <div className="grid w-full grid-cols-2 gap-2">
             <button
@@ -78,7 +92,7 @@ export function AddMealFlow() {
                 mode === "photo" ? "border-nutrition bg-nutrition-soft text-nutrition" : "border-border text-ink-soft"
               }`}
             >
-              📸 Foto
+              📸 {t.nutrition.addMeal.photoTab}
             </button>
             <button
               type="button"
@@ -87,21 +101,19 @@ export function AddMealFlow() {
                 mode === "describe" ? "border-nutrition bg-nutrition-soft text-nutrition" : "border-border text-ink-soft"
               }`}
             >
-              ✍️ Describir
+              ✍️ {t.nutrition.addMeal.describeTab}
             </button>
           </div>
 
           {mode === "photo" ? (
             <>
-              <p className="text-sm text-ink-soft">
-                Sacá una foto o subí una de tu galería. La IA va a estimar los alimentos y podés corregir todo antes de guardar.
-              </p>
+              <p className="text-sm text-ink-soft">{t.nutrition.addMeal.photoHint}</p>
               <button
                 type="button"
                 onClick={() => inputRef.current?.click()}
                 className="w-full rounded-xl bg-nutrition px-4 py-3 font-display text-sm font-medium text-white transition-colors hover:opacity-90"
               >
-                Tomar o elegir foto
+                {t.nutrition.addMeal.takeOrChoosePhoto}
               </button>
               <input
                 ref={inputRef}
@@ -117,15 +129,12 @@ export function AddMealFlow() {
             </>
           ) : (
             <>
-              <p className="text-sm text-ink-soft">
-                Contanos qué comiste, con el detalle que quieras (ej: &ldquo;dos tostadas con Nutella y un café con leche&rdquo;). La IA va a
-                estimar los alimentos y podés corregir todo antes de guardar.
-              </p>
+              <p className="text-sm text-ink-soft">{t.nutrition.addMeal.describeHint}</p>
               <textarea
                 rows={3}
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
-                placeholder="Ej: pan con Nutella y un café con leche"
+                placeholder={t.nutrition.addMeal.describePlaceholder}
                 className="w-full rounded-xl border border-border bg-surface px-3.5 py-2.5 text-sm text-ink placeholder:text-ink-faint outline-none transition-colors focus:border-nutrition"
               />
               <button
@@ -134,7 +143,7 @@ export function AddMealFlow() {
                 onClick={handleDescribe}
                 className="w-full rounded-xl bg-nutrition px-4 py-3 font-display text-sm font-medium text-white transition-colors hover:opacity-90 disabled:opacity-50"
               >
-                Analizar descripción
+                {t.nutrition.addMeal.analyzeDescriptionCta}
               </button>
             </>
           )}
@@ -149,7 +158,7 @@ export function AddMealFlow() {
             onClick={() => setStage({ name: "idle" })}
             className="rounded-xl border border-border px-4 py-2 font-display text-sm font-medium text-ink"
           >
-            Intentar de nuevo
+            {t.nutrition.addMeal.tryAgain}
           </button>
         </>
       )}

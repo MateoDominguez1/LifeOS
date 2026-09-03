@@ -2,9 +2,10 @@
 
 import { useTransition } from "react";
 import { useRouter } from "next/navigation";
+import type { Dictionary } from "@/lib/i18n";
 import { deleteManagedProfile } from "../actions";
 
-export function DeleteProfileButton({ id }: { id: string }) {
+export function DeleteProfileButton({ id, t }: { id: string; t: Dictionary }) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
 
@@ -21,7 +22,7 @@ export function DeleteProfileButton({ id }: { id: string }) {
       }
       className="text-sm text-danger hover:underline"
     >
-      Eliminar
+      {t.common.delete}
     </button>
   );
 }

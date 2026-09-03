@@ -3,10 +3,11 @@ import { prisma } from "@/lib/db/prisma";
 import { requireUserId } from "@/lib/auth/session";
 import { NutritionNav } from "@/components/nutrition/nutrition-nav";
 import { calculateRecipeTotals, perServing } from "@/lib/nutrition/recipes/calculateRecipeTotals";
+import { getT } from "@/lib/i18n";
 import { RecipeBuilder } from "./RecipeBuilder";
 
 export default async function NutritionRecipesPage() {
-  const userId = await requireUserId();
+  const [userId, { t }] = await Promise.all([requireUserId(), getT()]);
 
   const recipes = await prisma.recipe.findMany({
     where: { userId },
@@ -18,10 +19,10 @@ export default async function NutritionRecipesPage() {
     <div>
       <NutritionNav />
 
-      <h1 className="mb-4 font-display text-xl font-bold text-ink">Mis recetas</h1>
+      <h1 className="mb-4 font-display text-xl font-bold text-ink">{t.nutrition.recipes.title}</h1>
 
       <div className="mb-6 space-y-2">
-        {recipes.length === 0 && <p className="text-sm text-ink-faint">Todavía no creaste ninguna receta.</p>}
+        {recipes.length === 0 && <p className="text-sm text-ink-faint">{t.nutrition.recipes.empty}</p>}
         {recipes.map((recipe) => {
           const totals = calculateRecipeTotals(
             recipe.ingredients
@@ -44,14 +45,14 @@ export default async function NutritionRecipesPage() {
             >
               <p className="text-sm font-medium text-ink">{recipe.name}</p>
               <p className="text-xs text-ink-faint">
-                {recipe.servings} porciones · {Math.round(perServ.calories)} kcal/porción
+                {recipe.servings} {t.nutrition.recipes.servingsUnit} · {Math.round(perServ.calories)} {t.nutrition.recipes.perServingUnit}
               </p>
             </Link>
           );
         })}
       </div>
 
-      <RecipeBuilder />
+      <RecipeBuilder t={t} />
     </div>
   );
 }

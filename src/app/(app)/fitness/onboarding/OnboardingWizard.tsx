@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import type { Exercise } from "@/generated/prisma/client";
 import { cn } from "@/lib/cn";
+import type { Dictionary } from "@/lib/i18n";
 import { completeOnboarding } from "./actions";
 import { Step0Welcome } from "./steps/Step0Welcome";
 import { Step1About } from "./steps/Step1About";
@@ -16,7 +17,13 @@ import { INITIAL_ONBOARDING_DATA, type OnboardingData } from "./types";
 
 const TOTAL_STEPS = 7;
 
-export function OnboardingWizard({ exercises }: { exercises: (Exercise & { category: { name: string } | null })[] }) {
+export function OnboardingWizard({
+  exercises,
+  t,
+}: {
+  exercises: (Exercise & { category: { name: string } | null })[];
+  t: Dictionary;
+}) {
   const router = useRouter();
   const [step, setStep] = useState(0);
   const [data, setData] = useState<OnboardingData>(INITIAL_ONBOARDING_DATA);
@@ -58,7 +65,7 @@ export function OnboardingWizard({ exercises }: { exercises: (Exercise & { categ
         router.push("/fitness");
         router.refresh();
       } catch {
-        setError("No pudimos armar tu plan. Intentá de nuevo.");
+        setError(t.fitness.onboarding.genericError);
       }
     });
   }
@@ -74,13 +81,13 @@ export function OnboardingWizard({ exercises }: { exercises: (Exercise & { categ
       )}
 
       <div className="rounded-2xl border border-border-soft bg-surface p-6 shadow-[0_1px_2px_rgba(0,0,0,0.04),0_8px_24px_-12px_rgba(0,0,0,0.15)]">
-        {step === 0 && <Step0Welcome />}
-        {step === 1 && <Step1About data={data} update={update} />}
-        {step === 2 && <Step2Goal data={data} update={update} />}
-        {step === 3 && <Step3Availability data={data} update={update} />}
-        {step === 4 && <Step4Equipment data={data} update={update} />}
-        {step === 5 && <Step5Preferences data={data} update={update} exercises={exercises} />}
-        {step === 6 && <Step6Limitations data={data} update={update} />}
+        {step === 0 && <Step0Welcome t={t} />}
+        {step === 1 && <Step1About data={data} update={update} t={t} />}
+        {step === 2 && <Step2Goal data={data} update={update} t={t} />}
+        {step === 3 && <Step3Availability data={data} update={update} t={t} />}
+        {step === 4 && <Step4Equipment data={data} update={update} t={t} />}
+        {step === 5 && <Step5Preferences data={data} update={update} exercises={exercises} t={t} />}
+        {step === 6 && <Step6Limitations data={data} update={update} t={t} />}
       </div>
 
       {error && <p className="text-center text-sm text-danger">{error}</p>}
@@ -93,7 +100,7 @@ export function OnboardingWizard({ exercises }: { exercises: (Exercise & { categ
             disabled={isPending}
             className="flex-1 rounded-xl border border-border px-4 py-2.5 font-display text-sm font-medium text-ink transition-colors hover:bg-surface-raised disabled:opacity-60"
           >
-            Atrás
+            {t.common.back}
           </button>
         )}
         {step === 0 ? (
@@ -102,7 +109,7 @@ export function OnboardingWizard({ exercises }: { exercises: (Exercise & { categ
             onClick={handleNext}
             className="flex-1 rounded-xl bg-fitness px-4 py-2.5 font-display text-sm font-medium text-white transition-colors hover:opacity-90"
           >
-            Empezar
+            {t.fitness.onboarding.start}
           </button>
         ) : step < TOTAL_STEPS - 1 ? (
           <button
@@ -111,7 +118,7 @@ export function OnboardingWizard({ exercises }: { exercises: (Exercise & { categ
             disabled={!canAdvance}
             className="flex-1 rounded-xl bg-fitness px-4 py-2.5 font-display text-sm font-medium text-white transition-colors hover:opacity-90 disabled:opacity-40"
           >
-            Siguiente
+            {t.common.next}
           </button>
         ) : (
           <button
@@ -120,14 +127,14 @@ export function OnboardingWizard({ exercises }: { exercises: (Exercise & { categ
             disabled={isPending}
             className="flex-1 rounded-xl bg-fitness px-4 py-2.5 font-display text-sm font-medium text-white transition-colors hover:opacity-90 disabled:opacity-60"
           >
-            {isPending ? "Armando tu plan..." : "Armar mi plan"}
+            {isPending ? t.fitness.onboarding.finishPending : t.fitness.onboarding.finishSubmit}
           </button>
         )}
       </div>
 
       {step > 0 && (
         <p className="text-center text-xs text-ink-faint">
-          Paso {step} de {TOTAL_STEPS - 1}
+          {t.fitness.onboarding.stepIndicatorPrefix} {step} {t.fitness.common.of} {TOTAL_STEPS - 1}
         </p>
       )}
     </div>

@@ -1,13 +1,14 @@
 "use client";
 
 import { Bar, BarChart, CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import type { Dictionary } from "@/lib/i18n";
 
 const tooltipStyle = { background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 12, fontSize: 13 };
 const axisTick = { fill: "var(--ink-faint)", fontSize: 10 };
 
-export function WeightChart({ data }: { data: { date: string; weightKg: number }[] }) {
+export function WeightChart({ data, t }: { data: { date: string; weightKg: number }[]; t: Dictionary }) {
   if (data.length < 2) {
-    return <p className="py-6 text-center text-sm text-ink-faint">Registrá tu peso al menos dos veces para ver la evolución.</p>;
+    return <p className="py-6 text-center text-sm text-ink-faint">{t.fitness.progress.chartWeightEmpty}</p>;
   }
   return (
     <div className="h-40 w-full">
@@ -15,7 +16,7 @@ export function WeightChart({ data }: { data: { date: string; weightKg: number }
         <LineChart data={data} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
           <XAxis dataKey="date" tick={axisTick} tickFormatter={(v: string) => v.slice(5)} axisLine={false} tickLine={false} />
           <YAxis domain={["dataMin - 2", "dataMax + 2"]} tick={axisTick} axisLine={false} tickLine={false} />
-          <Tooltip formatter={(v) => [`${v} kg`, "Peso"]} contentStyle={tooltipStyle} />
+          <Tooltip formatter={(v) => [`${v} kg`, t.fitness.progress.tooltipWeight]} contentStyle={tooltipStyle} />
           <Line type="monotone" dataKey="weightKg" stroke="var(--fitness)" strokeWidth={2} dot={{ r: 3 }} />
         </LineChart>
       </ResponsiveContainer>
@@ -23,9 +24,9 @@ export function WeightChart({ data }: { data: { date: string; weightKg: number }
   );
 }
 
-export function MeasurementChart({ data }: { data: { date: string; valueCm: number }[] }) {
+export function MeasurementChart({ data, t }: { data: { date: string; valueCm: number }[]; t: Dictionary }) {
   if (data.length < 2) {
-    return <p className="py-4 text-center text-xs text-ink-faint">Registrá más mediciones para ver la evolución.</p>;
+    return <p className="py-4 text-center text-xs text-ink-faint">{t.fitness.progress.chartMeasurementEmpty}</p>;
   }
   return (
     <div className="h-28 w-full">
@@ -33,7 +34,7 @@ export function MeasurementChart({ data }: { data: { date: string; valueCm: numb
         <LineChart data={data} margin={{ top: 6, right: 10, left: -20, bottom: 0 }}>
           <XAxis dataKey="date" tick={axisTick} tickFormatter={(v: string) => v.slice(5)} axisLine={false} tickLine={false} />
           <YAxis domain={["dataMin - 1", "dataMax + 1"]} tick={axisTick} axisLine={false} tickLine={false} />
-          <Tooltip formatter={(v) => [`${v} cm`, "Medida"]} contentStyle={tooltipStyle} />
+          <Tooltip formatter={(v) => [`${v} cm`, t.fitness.progress.tooltipMeasurement]} contentStyle={tooltipStyle} />
           <Line type="monotone" dataKey="valueCm" stroke="var(--accent)" strokeWidth={2} dot={{ r: 2 }} />
         </LineChart>
       </ResponsiveContainer>
@@ -41,9 +42,9 @@ export function MeasurementChart({ data }: { data: { date: string; valueCm: numb
   );
 }
 
-export function StrengthChart({ data }: { data: { date: string; estimated1RM: number }[] }) {
+export function StrengthChart({ data, t }: { data: { date: string; estimated1RM: number }[]; t: Dictionary }) {
   if (data.length < 2) {
-    return <p className="py-4 text-center text-xs text-ink-faint">Entrená este ejercicio un poco más para ver la evolución.</p>;
+    return <p className="py-4 text-center text-xs text-ink-faint">{t.fitness.progress.chartStrengthEmpty}</p>;
   }
   return (
     <div className="h-28 w-full">
@@ -51,7 +52,7 @@ export function StrengthChart({ data }: { data: { date: string; estimated1RM: nu
         <LineChart data={data} margin={{ top: 6, right: 10, left: -20, bottom: 0 }}>
           <XAxis dataKey="date" tick={axisTick} tickFormatter={(v: string) => v.slice(5)} axisLine={false} tickLine={false} />
           <YAxis domain={["dataMin - 5", "dataMax + 5"]} tick={axisTick} axisLine={false} tickLine={false} />
-          <Tooltip formatter={(v) => [`${v} kg`, "1RM est."]} contentStyle={tooltipStyle} />
+          <Tooltip formatter={(v) => [`${v} kg`, t.fitness.progress.tooltip1RM]} contentStyle={tooltipStyle} />
           <Line type="monotone" dataKey="estimated1RM" stroke="var(--fitness)" strokeWidth={2} dot={{ r: 2 }} />
         </LineChart>
       </ResponsiveContainer>
@@ -59,9 +60,9 @@ export function StrengthChart({ data }: { data: { date: string; estimated1RM: nu
   );
 }
 
-export function VolumeChart({ data }: { data: { week: string; volume: number }[] }) {
+export function VolumeChart({ data, t }: { data: { week: string; volume: number }[]; t: Dictionary }) {
   if (data.length === 0) {
-    return <p className="py-6 text-center text-sm text-ink-faint">Completá entrenamientos para ver el volumen semanal.</p>;
+    return <p className="py-6 text-center text-sm text-ink-faint">{t.fitness.progress.chartVolumeEmpty}</p>;
   }
   return (
     <div className="h-40 w-full">
@@ -70,7 +71,7 @@ export function VolumeChart({ data }: { data: { week: string; volume: number }[]
           <CartesianGrid stroke="var(--border-soft)" vertical={false} />
           <XAxis dataKey="week" tick={axisTick} tickFormatter={(v: string) => v.slice(5)} axisLine={false} tickLine={false} />
           <YAxis tick={axisTick} axisLine={false} tickLine={false} />
-          <Tooltip formatter={(v) => [`${v} kg`, "Volumen"]} contentStyle={tooltipStyle} />
+          <Tooltip formatter={(v) => [`${v} kg`, t.fitness.progress.tooltipVolume]} contentStyle={tooltipStyle} />
           <Bar dataKey="volume" fill="var(--fitness)" radius={[4, 4, 0, 0]} />
         </BarChart>
       </ResponsiveContainer>
@@ -78,9 +79,9 @@ export function VolumeChart({ data }: { data: { week: string; volume: number }[]
   );
 }
 
-export function FrequencyChart({ data }: { data: { week: string; count: number }[] }) {
+export function FrequencyChart({ data, t }: { data: { week: string; count: number }[]; t: Dictionary }) {
   if (data.length === 0) {
-    return <p className="py-6 text-center text-sm text-ink-faint">Completá entrenamientos para ver tu frecuencia.</p>;
+    return <p className="py-6 text-center text-sm text-ink-faint">{t.fitness.progress.chartFrequencyEmpty}</p>;
   }
   return (
     <div className="h-40 w-full">
@@ -89,7 +90,7 @@ export function FrequencyChart({ data }: { data: { week: string; count: number }
           <CartesianGrid stroke="var(--border-soft)" vertical={false} />
           <XAxis dataKey="week" tick={axisTick} tickFormatter={(v: string) => v.slice(5)} axisLine={false} tickLine={false} />
           <YAxis tick={axisTick} axisLine={false} tickLine={false} allowDecimals={false} />
-          <Tooltip formatter={(v) => [v, "Sesiones"]} contentStyle={tooltipStyle} />
+          <Tooltip formatter={(v) => [v, t.fitness.progress.tooltipSessions]} contentStyle={tooltipStyle} />
           <Bar dataKey="count" fill="var(--accent)" radius={[4, 4, 0, 0]} />
         </BarChart>
       </ResponsiveContainer>
@@ -97,9 +98,9 @@ export function FrequencyChart({ data }: { data: { week: string; count: number }
   );
 }
 
-export function MuscleGroupChart({ data }: { data: { muscle: string; volume: number }[] }) {
+export function MuscleGroupChart({ data, t }: { data: { muscle: string; volume: number }[]; t: Dictionary }) {
   if (data.length === 0) {
-    return <p className="py-6 text-center text-sm text-ink-faint">Completá entrenamientos para ver el volumen por grupo muscular.</p>;
+    return <p className="py-6 text-center text-sm text-ink-faint">{t.fitness.progress.chartMuscleEmpty}</p>;
   }
   const height = Math.max(120, data.length * 28);
   return (
@@ -108,7 +109,7 @@ export function MuscleGroupChart({ data }: { data: { muscle: string; volume: num
         <BarChart data={data} layout="vertical" margin={{ top: 4, right: 20, left: 10, bottom: 4 }}>
           <XAxis type="number" tick={axisTick} axisLine={false} tickLine={false} />
           <YAxis type="category" dataKey="muscle" tick={axisTick} axisLine={false} tickLine={false} width={80} />
-          <Tooltip formatter={(v) => [`${v} kg`, "Volumen"]} contentStyle={tooltipStyle} />
+          <Tooltip formatter={(v) => [`${v} kg`, t.fitness.progress.tooltipVolume]} contentStyle={tooltipStyle} />
           <Bar dataKey="volume" fill="var(--fitness)" radius={[0, 4, 4, 0]} />
         </BarChart>
       </ResponsiveContainer>

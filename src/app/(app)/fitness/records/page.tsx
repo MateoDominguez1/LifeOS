@@ -3,16 +3,17 @@ import { requireUserId } from "@/lib/auth/session";
 import { Card } from "@/components/ui/card";
 import { FitnessNav } from "@/components/fitness/fitness-nav";
 import type { PRType } from "@/generated/prisma/client";
-
-const PR_META: Record<PRType, { label: string; unit: string }> = {
-  MAX_WEIGHT: { label: "Peso máximo", unit: "kg" },
-  MAX_REPS: { label: "Más repeticiones", unit: "reps" },
-  MAX_VOLUME: { label: "Más volumen", unit: "kg" },
-  ESTIMATED_1RM: { label: "1RM estimado", unit: "kg" },
-};
+import { getT } from "@/lib/i18n";
 
 export default async function RecordsPage() {
-  const userId = await requireUserId();
+  const [userId, { t }] = await Promise.all([requireUserId(), getT()]);
+
+  const PR_META: Record<PRType, { label: string; unit: string }> = {
+    MAX_WEIGHT: { label: t.fitness.records.prMaxWeight, unit: "kg" },
+    MAX_REPS: { label: t.fitness.records.prMaxReps, unit: t.fitness.workout.repsUnit },
+    MAX_VOLUME: { label: t.fitness.records.prMaxVolume, unit: "kg" },
+    ESTIMATED_1RM: { label: t.fitness.records.prEstimated1RM, unit: "kg" },
+  };
 
   const records = await prisma.personalRecord.findMany({
     where: { userId },
@@ -34,7 +35,7 @@ export default async function RecordsPage() {
       <FitnessNav />
 
       {exerciseNames.length === 0 ? (
-        <Card className="text-center text-sm text-ink-soft">No hay récords todavía — completá un entrenamiento para empezar a marcar PRs.</Card>
+        <Card className="text-center text-sm text-ink-soft">{t.fitness.records.empty}</Card>
       ) : (
         <div className="flex flex-col gap-3">
           {exerciseNames.map((name) => {

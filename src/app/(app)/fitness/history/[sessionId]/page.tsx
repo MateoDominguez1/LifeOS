@@ -3,9 +3,10 @@ import { prisma } from "@/lib/db/prisma";
 import { requireUserId } from "@/lib/auth/session";
 import { Card } from "@/components/ui/card";
 import { FitnessNav } from "@/components/fitness/fitness-nav";
+import { getT } from "@/lib/i18n";
 
 export default async function HistoryDetailPage({ params }: { params: Promise<{ sessionId: string }> }) {
-  const userId = await requireUserId();
+  const [userId, { t }] = await Promise.all([requireUserId(), getT()]);
   const { sessionId } = await params;
 
   const session = await prisma.workoutSession.findUnique({
@@ -31,7 +32,7 @@ export default async function HistoryDetailPage({ params }: { params: Promise<{ 
     <div>
       <FitnessNav />
 
-      <h1 className="font-display text-xl font-bold text-ink">{session.workoutDay?.label ?? "Entrenamiento"}</h1>
+      <h1 className="font-display text-xl font-bold text-ink">{session.workoutDay?.label ?? t.fitness.common.workoutFallback}</h1>
       <p className="mb-4 text-sm text-ink-soft">
         {session.completedAt?.toISOString().slice(0, 10)} · {session.durationSec ? `${Math.round(session.durationSec / 60)} min` : "—"} ·{" "}
         {Math.round(volume)} kg
@@ -44,7 +45,7 @@ export default async function HistoryDetailPage({ params }: { params: Promise<{ 
             <div className="mt-2 space-y-1 text-sm text-ink-soft">
               {sets.map((set) => (
                 <div key={set.id} className="flex justify-between">
-                  <span>Set {set.setNumber}</span>
+                  <span>{t.fitness.workout.setLabel} {set.setNumber}</span>
                   <span>
                     {set.weightKg}kg × {set.reps}
                     {set.rir != null && ` @ RIR ${set.rir}`}

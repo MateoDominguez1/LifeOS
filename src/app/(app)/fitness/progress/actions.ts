@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/db/prisma";
 import { requireUserId } from "@/lib/auth/session";
 import type { MeasurementType } from "@/generated/prisma/client";
+import { getT } from "@/lib/i18n";
 
 export interface LogWeightInput {
   weightKg: number;
@@ -11,13 +12,13 @@ export interface LogWeightInput {
 }
 
 export async function logWeight(input: LogWeightInput) {
-  const userId = await requireUserId();
+  const [userId, { t }] = await Promise.all([requireUserId(), getT()]);
 
   if (!Number.isFinite(input.weightKg) || input.weightKg < 20 || input.weightKg > 400) {
-    throw new Error("Peso inválido.");
+    throw new Error(t.fitness.common.weightInvalidError);
   }
   if (input.note && input.note.length > 280) {
-    throw new Error("La nota es demasiado larga.");
+    throw new Error(t.fitness.progress.noteTooLongError);
   }
 
   await prisma.weightEntry.create({
@@ -35,13 +36,13 @@ export interface LogMeasurementInput {
 }
 
 export async function logMeasurement(input: LogMeasurementInput) {
-  const userId = await requireUserId();
+  const [userId, { t }] = await Promise.all([requireUserId(), getT()]);
 
   if (!Number.isFinite(input.valueCm) || input.valueCm < 1 || input.valueCm > 300) {
-    throw new Error("Medida inválida.");
+    throw new Error(t.fitness.common.measurementInvalidError);
   }
   if (input.customLabel && input.customLabel.length > 60) {
-    throw new Error("La etiqueta es demasiado larga.");
+    throw new Error(t.fitness.progress.labelTooLongError);
   }
 
   await prisma.bodyMeasurement.create({

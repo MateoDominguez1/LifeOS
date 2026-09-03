@@ -1,21 +1,30 @@
 import type { EquipmentType } from "@/generated/prisma/client";
 import type { OnboardingData } from "../types";
 import { Chip, StepShell } from "@/components/fitness/form";
+import type { Dictionary } from "@/lib/i18n";
 
-const EQUIPMENT_OPTIONS: { value: EquipmentType; label: string }[] = [
-  { value: "FULL_GYM", label: "Gimnasio completo" },
-  { value: "BASIC_GYM", label: "Gimnasio básico" },
-  { value: "HOME_GYM", label: "Gimnasio en casa" },
-  { value: "DUMBBELLS", label: "Mancuernas" },
-  { value: "MACHINES", label: "Máquinas" },
-  { value: "BARBELL", label: "Barra" },
-  { value: "BODYWEIGHT", label: "Peso corporal" },
-  { value: "OTHER", label: "Otro" },
-];
+export function Step4Equipment({
+  data,
+  update,
+  t,
+}: {
+  data: OnboardingData;
+  update: (patch: Partial<OnboardingData>) => void;
+  t: Dictionary;
+}) {
+  const EQUIPMENT_OPTIONS: { value: EquipmentType; label: string }[] = [
+    { value: "FULL_GYM", label: t.fitness.onboarding.equipmentFullGym },
+    { value: "BASIC_GYM", label: t.fitness.onboarding.equipmentBasicGym },
+    { value: "HOME_GYM", label: t.fitness.onboarding.equipmentHomeGym },
+    { value: "DUMBBELLS", label: t.fitness.onboarding.equipmentDumbbells },
+    { value: "MACHINES", label: t.fitness.onboarding.equipmentMachines },
+    { value: "BARBELL", label: t.fitness.onboarding.equipmentBarbell },
+    { value: "BODYWEIGHT", label: t.fitness.onboarding.equipmentBodyweight },
+    { value: "OTHER", label: t.fitness.onboarding.equipmentOther },
+  ];
 
-export function Step4Equipment({ data, update }: { data: OnboardingData; update: (patch: Partial<OnboardingData>) => void }) {
   return (
-    <StepShell title="Equipamiento disponible" subtitle="Elegí todo lo que tengas a mano.">
+    <StepShell title={t.fitness.onboarding.step4Title} subtitle={t.fitness.onboarding.step4Subtitle}>
       <div className="grid grid-cols-2 gap-2">
         {EQUIPMENT_OPTIONS.map((opt) => (
           <Chip

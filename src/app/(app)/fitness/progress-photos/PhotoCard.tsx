@@ -1,9 +1,8 @@
 "use client";
 
 import { useTransition } from "react";
+import type { Dictionary } from "@/lib/i18n";
 import { deletePhoto, setPhotoPrivacy } from "./actions";
-
-const ANGLE_LABEL: Record<string, string> = { FRONT: "Frente", SIDE: "Perfil", BACK: "Espalda" };
 
 export interface PhotoCardData {
   id: string;
@@ -14,8 +13,14 @@ export interface PhotoCardData {
   privacy: "PRIVATE" | "PEOPLE" | "PUBLIC";
 }
 
-export function PhotoCard({ photo }: { photo: PhotoCardData }) {
+export function PhotoCard({ photo, t }: { photo: PhotoCardData; t: Dictionary }) {
   const [isPending, startTransition] = useTransition();
+
+  const ANGLE_LABEL: Record<string, string> = {
+    FRONT: t.fitness.progressPhotos.angleFront,
+    SIDE: t.fitness.progressPhotos.angleSide,
+    BACK: t.fitness.progressPhotos.angleBack,
+  };
 
   return (
     <div className="overflow-hidden rounded-xl border border-border-soft">
@@ -35,9 +40,9 @@ export function PhotoCard({ photo }: { photo: PhotoCardData }) {
             onChange={(e) => startTransition(() => setPhotoPrivacy(photo.id, e.target.value as "PRIVATE" | "PEOPLE" | "PUBLIC"))}
             className="h-7 rounded-lg border border-border bg-surface px-1.5 text-xs text-ink"
           >
-            <option value="PRIVATE">Privada</option>
-            <option value="PEOPLE">Personas</option>
-            <option value="PUBLIC">Pública</option>
+            <option value="PRIVATE">{t.fitness.progressPhotos.privacyPrivate}</option>
+            <option value="PEOPLE">{t.fitness.progressPhotos.privacyPeople}</option>
+            <option value="PUBLIC">{t.fitness.progressPhotos.privacyPublic}</option>
           </select>
           <button
             type="button"
@@ -45,7 +50,7 @@ export function PhotoCard({ photo }: { photo: PhotoCardData }) {
             onClick={() => startTransition(() => deletePhoto(photo.id))}
             className="text-xs text-danger hover:underline"
           >
-            Eliminar
+            {t.common.delete}
           </button>
         </div>
       </div>

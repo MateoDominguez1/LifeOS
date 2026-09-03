@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/db/prisma";
+import { getT } from "@/lib/i18n";
 import { getWeekRange } from "../today";
 import { checkAndRecordPRs } from "../prs/check-records";
 import { checkPlateauForSession } from "../ai/check-plateau";
@@ -23,7 +24,10 @@ export async function startWorkoutSession(
   managedProfileId: string | null = null
 ): Promise<StartSessionResult> {
   const day = await prisma.workoutDay.findUnique({ where: { id: workoutDayId } });
-  if (!day) return { error: "Workout day not found." };
+  if (!day) {
+    const { t } = await getT();
+    return { error: t.fitness.workout.dayNotFoundError };
+  }
 
   const { start, end } = getWeekRange();
   const existing = await prisma.workoutSession.findFirst({
@@ -39,8 +43,14 @@ export async function startWorkoutSession(
 
 export async function logSet(userId: string, input: LogSetInput): Promise<ServiceResult> {
   const session = await prisma.workoutSession.findUnique({ where: { id: input.sessionId } });
-  if (!session || session.userId !== userId) return { error: "Not authorized" };
-  if (session.completedAt) return { error: "Workout already finished" };
+  if (!session || session.userId !== userId) {
+    const { t } = await getT();
+    return { error: t.fitness.common.notAuthorizedError };
+  }
+  if (session.completedAt) {
+    const { t } = await getT();
+    return { error: t.fitness.workout.alreadyFinishedError };
+  }
 
   const existing = await prisma.workoutSet.findFirst({
     where: { sessionId: input.sessionId, workoutExerciseId: input.workoutExerciseId, setNumber: input.setNumber },
@@ -68,8 +78,14 @@ export async function logSet(userId: string, input: LogSetInput): Promise<Servic
 
 export async function finishWorkoutSession(userId: string, sessionId: string): Promise<ServiceResult> {
   const session = await prisma.workoutSession.findUnique({ where: { id: sessionId } });
-  if (!session || session.userId !== userId) return { error: "Not authorized" };
-  if (session.completedAt) return { error: "Workout already finished" };
+  if (!session || session.userId !== userId) {
+    const { t } = await getT();
+    return { error: t.fitness.common.notAuthorizedError };
+  }
+  if (session.completedAt) {
+    const { t } = await getT();
+    return { error: t.fitness.workout.alreadyFinishedError };
+  }
 
   const completedAt = new Date();
   const durationSec = Math.round((completedAt.getTime() - session.startedAt.getTime()) / 1000);
@@ -93,7 +109,10 @@ export async function markWorkoutDone(
   managedProfileId: string | null = null
 ): Promise<StartSessionResult> {
   const day = await prisma.workoutDay.findUnique({ where: { id: workoutDayId } });
-  if (!day) return { error: "Workout day not found." };
+  if (!day) {
+    const { t } = await getT();
+    return { error: t.fitness.workout.dayNotFoundError };
+  }
 
   const dayStart = new Date(date);
   dayStart.setHours(0, 0, 0, 0);
@@ -123,8 +142,14 @@ export async function markWorkoutDone(
  * a real logged workout can never be silently wiped by this. */
 export async function unmarkWorkoutDone(userId: string, sessionId: string): Promise<ServiceResult> {
   const session = await prisma.workoutSession.findUnique({ where: { id: sessionId }, include: { sets: true } });
-  if (!session || session.userId !== userId) return { error: "Not authorized" };
-  if (session.sets.length > 0) return { error: "This session has logged sets and can't be unmarked this way." };
+  if (!session || session.userId !== userId) {
+    const { t } = await getT();
+    return { error: t.fitness.common.notAuthorizedError };
+  }
+  if (session.sets.length > 0) {
+    const { t } = await getT();
+    return { error: t.fitness.workout.sessionHasSetsError };
+  }
 
   await prisma.workoutSession.delete({ where: { id: sessionId } });
   return { success: true };

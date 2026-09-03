@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/db/prisma";
 import { requireUserId } from "@/lib/auth/session";
+import { getT } from "@/lib/i18n";
 
 function clamp(value: number, min: number, max: number) {
   return Math.min(Math.max(value, min), max);
@@ -13,13 +14,19 @@ async function assertOwnsWorkoutExercise(userId: string, workoutExerciseId: stri
     where: { id: workoutExerciseId },
     include: { workoutDay: { include: { program: true } } },
   });
-  if (!we || we.workoutDay.program.userId !== userId) throw new Error("Not authorized");
+  if (!we || we.workoutDay.program.userId !== userId) {
+    const { t } = await getT();
+    throw new Error(t.fitness.common.notAuthorizedError);
+  }
   return we;
 }
 
 async function assertOwnsDay(userId: string, workoutDayId: string) {
   const day = await prisma.workoutDay.findUnique({ where: { id: workoutDayId }, include: { program: true } });
-  if (!day || day.program.userId !== userId) throw new Error("Not authorized");
+  if (!day || day.program.userId !== userId) {
+    const { t } = await getT();
+    throw new Error(t.fitness.common.notAuthorizedError);
+  }
   return day;
 }
 
@@ -78,7 +85,10 @@ export async function addExercise(workoutDayId: string, exerciseId: string) {
 
 async function assertOwnsProgram(userId: string, programId: string) {
   const program = await prisma.workoutProgram.findUnique({ where: { id: programId } });
-  if (!program || program.userId !== userId) throw new Error("Not authorized");
+  if (!program || program.userId !== userId) {
+    const { t } = await getT();
+    throw new Error(t.fitness.common.notAuthorizedError);
+  }
   return program;
 }
 
@@ -88,7 +98,8 @@ export async function addWorkoutDay(programId: string, dayOfWeek: number) {
 
   const existing = await prisma.workoutDay.findMany({ where: { programId } });
   if (existing.some((d) => d.dayOfWeek === dayOfWeek)) {
-    throw new Error("Ya hay un día de entrenamiento asignado a ese día de la semana.");
+    const { t } = await getT();
+    throw new Error(t.fitness.programs.dayAlreadyAssignedError);
   }
 
   const maxOrder = existing.reduce((max, d) => Math.max(max, d.order), -1);
@@ -106,12 +117,14 @@ export async function removeWorkoutDay(workoutDayId: string) {
 
   const siblingCount = await prisma.workoutDay.count({ where: { programId: day.programId } });
   if (siblingCount <= 1) {
-    throw new Error("No podés borrar el único día de entrenamiento del programa.");
+    const { t } = await getT();
+    throw new Error(t.fitness.programs.onlyDayError);
   }
 
   const loggedSets = await prisma.workoutSet.count({ where: { workoutExercise: { workoutDayId } } });
   if (loggedSets > 0) {
-    throw new Error("Este día tiene entrenamientos registrados — no se puede eliminar. Podés quitar sus ejercicios en su lugar.");
+    const { t } = await getT();
+    throw new Error(t.fitness.programs.dayHasWorkoutsError);
   }
 
   await prisma.workoutDay.delete({ where: { id: workoutDayId } });

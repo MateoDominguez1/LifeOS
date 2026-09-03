@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import type { RirRpeMode } from "@/generated/prisma/client";
 import type { WeightSuggestion } from "@/lib/fitness/types";
 import { Card } from "@/components/ui/card";
+import type { Dictionary } from "@/lib/i18n";
 import { logSet, finishWorkoutSession } from "../actions";
 
 export interface ExerciseCardData {
@@ -54,11 +55,13 @@ export function WorkoutSessionClient({
   dayLabel,
   rirRpeMode,
   exercises,
+  t,
 }: {
   sessionId: string;
   dayLabel: string;
   rirRpeMode: RirRpeMode;
   exercises: ExerciseCardData[];
+  t: Dictionary;
 }) {
   const [rows, setRows] = useState<Record<string, SetRow[]>>(() =>
     Object.fromEntries(exercises.map((ex) => [ex.workoutExerciseId, buildInitialRows(ex)]))
@@ -98,7 +101,7 @@ export function WorkoutSessionClient({
         });
         updateRow(workoutExerciseId, index, { completed: true, saving: false });
       } catch {
-        updateRow(workoutExerciseId, index, { saving: false, error: "Couldn't save — try again" });
+        updateRow(workoutExerciseId, index, { saving: false, error: t.fitness.workout.saveError });
       }
     });
   }
@@ -114,7 +117,7 @@ export function WorkoutSessionClient({
       <header className="flex items-center justify-between">
         <h1 className="font-display text-xl font-bold text-ink">{dayLabel}</h1>
         <span className="font-mono text-sm text-ink-soft">
-          {completedSets}/{totalSets} sets
+          {completedSets}/{totalSets} {t.fitness.workout.setsUnit}
         </span>
       </header>
 
@@ -122,17 +125,17 @@ export function WorkoutSessionClient({
         <Card key={ex.workoutExerciseId}>
           <h2 className="font-display text-base font-semibold text-ink">{ex.exerciseName}</h2>
           <p className="text-xs text-ink-faint">
-            Target: {ex.targetRepsMin}-{ex.targetRepsMax} reps
+            {t.fitness.workout.targetLabel} {ex.targetRepsMin}-{ex.targetRepsMax} {t.fitness.workout.repsUnit}
             {rirRpeMode === "RIR" && ex.targetRir != null && ` @ RIR ${ex.targetRir}`}
             {rirRpeMode === "RPE" && ex.targetRpe != null && ` @ RPE ${ex.targetRpe}`}
-            {` · Descanso ${ex.restSeconds}s`}
+            {` · ${t.fitness.workout.restLabelInline} ${ex.restSeconds}s`}
           </p>
           {ex.suggestion.reason && <p className="mt-1 text-xs text-fitness">💡 {ex.suggestion.reason}</p>}
 
           <div className="mt-3 space-y-2">
             {rows[ex.workoutExerciseId].map((row, i) => (
               <div key={i} className="flex items-center gap-2">
-                <span className="w-12 shrink-0 text-xs text-ink-faint">Set {i + 1}</span>
+                <span className="w-12 shrink-0 text-xs text-ink-faint">{t.fitness.workout.setLabel} {i + 1}</span>
                 <input
                   type="number"
                   inputMode="decimal"
@@ -147,7 +150,7 @@ export function WorkoutSessionClient({
                 <input
                   type="number"
                   inputMode="numeric"
-                  placeholder="reps"
+                  placeholder={t.fitness.workout.repsUnit}
                   value={row.reps}
                   disabled={row.completed}
                   onFocus={(e) => e.target.select()}
@@ -178,7 +181,7 @@ export function WorkoutSessionClient({
                 </button>
               </div>
             ))}
-            {rows[ex.workoutExerciseId].some((r) => r.error) && <p className="text-xs text-danger">Couldn&apos;t save — try again</p>}
+            {rows[ex.workoutExerciseId].some((r) => r.error) && <p className="text-xs text-danger">{t.fitness.workout.saveError}</p>}
           </div>
         </Card>
       ))}
@@ -189,7 +192,7 @@ export function WorkoutSessionClient({
         disabled={isFinishing}
         className="fixed bottom-4 left-1/2 w-[calc(100%-2rem)] max-w-lg -translate-x-1/2 rounded-xl bg-fitness px-4 py-3 font-display text-sm font-medium text-white shadow-lg hover:opacity-90 disabled:opacity-60"
       >
-        {isFinishing ? "Guardando..." : "Finalizar entrenamiento"}
+        {isFinishing ? t.common.saving : t.fitness.workout.finishSubmit}
       </button>
     </div>
   );

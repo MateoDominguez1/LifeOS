@@ -30,13 +30,3 @@ export function deriveDayType(exercises: { muscleGroups: string[] }[]): DayTypeK
   if (hasPush) return "push";
   return "pull";
 }
-
-export const DAY_TYPE_LABELS_ES: Record<DayTypeKey, string> = {
-  empty: "Sin ejercicios",
-  push: "Push",
-  pull: "Pull",
-  legs: "Piernas",
-  upper: "Tren superior",
-  fullBody: "Full body",
-  mixed: "Mixto",
-};

@@ -1,12 +1,10 @@
 import { StepShell } from "@/components/fitness/form";
+import type { Dictionary } from "@/lib/i18n";
 
-export function Step0Welcome() {
+export function Step0Welcome({ t }: { t: Dictionary }) {
   return (
-    <StepShell emoji="💪" title="Armemos tu plan de entrenamiento">
-      <p className="text-sm text-ink-soft">
-        Son 6 pasos cortos. Con esto generamos tu primer programa de entrenamiento — vas a poder
-        ajustarlo cuando quieras desde Programa.
-      </p>
+    <StepShell emoji="💪" title={t.fitness.onboarding.welcomeTitle}>
+      <p className="text-sm text-ink-soft">{t.fitness.onboarding.welcomeBody}</p>
     </StepShell>
   );
 }

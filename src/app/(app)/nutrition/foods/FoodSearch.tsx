@@ -3,9 +3,10 @@
 import type { FoodItem } from "@/generated/prisma/client";
 import { useEffect, useRef, useState, useTransition } from "react";
 import { Card } from "@/components/ui/card";
+import type { Dictionary } from "@/lib/i18n";
 import { createCustomFood, searchFoodsAction } from "./actions";
 
-export function FoodSearch() {
+export function FoodSearch({ t }: { t: Dictionary }) {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<FoodItem[]>([]);
   const [isSearching, startSearch] = useTransition();
@@ -41,49 +42,49 @@ export function FoodSearch() {
         type="text"
         value={query}
         onChange={(e) => setQuery(e.target.value)}
-        placeholder="Buscar alimento (ej: pollo, arroz, banana)"
+        placeholder={t.nutrition.foods.searchPlaceholder}
         className="w-full rounded-xl border border-border bg-surface px-4 py-3 text-sm text-ink outline-none transition-colors focus:border-nutrition"
       />
 
-      {isSearching && <p className="text-sm text-ink-faint">Buscando...</p>}
+      {isSearching && <p className="text-sm text-ink-faint">{t.nutrition.foods.searching}</p>}
 
       {!isSearching && hasSearched && results.length === 0 && (
-        <p className="text-sm text-ink-faint">No encontramos nada. Podés agregarlo manualmente abajo.</p>
+        <p className="text-sm text-ink-faint">{t.nutrition.foods.noResults}</p>
       )}
 
       <div className="space-y-2">
         {results.map((food) => (
-          <FoodResultCard key={food.id} food={food} />
+          <FoodResultCard key={food.id} food={food} t={t} />
         ))}
       </div>
 
-      <ManualFoodForm />
+      <ManualFoodForm t={t} />
     </div>
   );
 }
 
-function FoodResultCard({ food }: { food: FoodItem }) {
+function FoodResultCard({ food, t }: { food: FoodItem; t: Dictionary }) {
   return (
     <Card>
       <div className="flex items-baseline justify-between gap-2">
         <span className="text-sm font-medium text-ink">{food.name}</span>
         <span className="shrink-0 text-xs text-ink-faint">
-          por 100 g
-          {food.commonPortionGrams ? ` · porción habitual ${Math.round(food.commonPortionGrams)} g` : ""}
+          {t.nutrition.foods.per100g}
+          {food.commonPortionGrams ? ` · ${t.nutrition.foods.commonPortionPrefix} ${Math.round(food.commonPortionGrams)} g` : ""}
         </span>
       </div>
       <div className="mt-2 flex gap-4 text-xs text-ink-soft">
         <span>{Math.round(food.caloriesPer100g)} kcal</span>
-        <span>{Math.round(food.proteinPer100g)} g P</span>
-        <span>{Math.round(food.carbsPer100g)} g C</span>
-        <span>{Math.round(food.fatPer100g)} g G</span>
-        {food.fiberPer100g != null && <span>{Math.round(food.fiberPer100g)} g fibra</span>}
+        <span>{Math.round(food.proteinPer100g)} g {t.nutrition.common.macroProteinAbbrev}</span>
+        <span>{Math.round(food.carbsPer100g)} g {t.nutrition.common.macroCarbsAbbrev}</span>
+        <span>{Math.round(food.fatPer100g)} g {t.nutrition.common.macroFatAbbrev}</span>
+        {food.fiberPer100g != null && <span>{Math.round(food.fiberPer100g)} g {t.nutrition.common.fiberUnitLabel}</span>}
       </div>
     </Card>
   );
 }
 
-function ManualFoodForm() {
+function ManualFoodForm({ t }: { t: Dictionary }) {
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
   const [calories, setCalories] = useState("");
@@ -116,7 +117,7 @@ function ManualFoodForm() {
         setFat("");
         setFiber("");
       } catch {
-        setError("Revisá los valores: tienen que ser números válidos y no negativos.");
+        setError(t.nutrition.foods.saveError);
       }
     });
   }
@@ -124,18 +125,18 @@ function ManualFoodForm() {
   if (!open) {
     return (
       <button type="button" onClick={() => setOpen(true)} className="text-sm font-medium text-ink-soft underline underline-offset-2 hover:text-ink">
-        + Agregar alimento manual
+        {t.nutrition.foods.addManualCta}
       </button>
     );
   }
 
   return (
     <form onSubmit={handleSubmit} className="space-y-3 rounded-xl border border-border-soft p-4">
-      <p className="text-sm font-medium text-ink">Agregar alimento (valores por 100 g)</p>
+      <p className="text-sm font-medium text-ink">{t.nutrition.foods.addManualTitle}</p>
       <input
         type="text"
         required
-        placeholder="Nombre"
+        placeholder={t.nutrition.foods.namePlaceholder}
         value={name}
         onChange={(e) => setName(e.target.value)}
         className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-ink"
@@ -144,7 +145,7 @@ function ManualFoodForm() {
         <input
           type="number"
           required
-          placeholder="Calorías"
+          placeholder={t.nutrition.foods.caloriesPlaceholder}
           value={calories}
           onChange={(e) => setCalories(e.target.value)}
           className="rounded-lg border border-border bg-surface px-3 py-2 text-sm text-ink"
@@ -152,7 +153,7 @@ function ManualFoodForm() {
         <input
           type="number"
           required
-          placeholder="Proteína (g)"
+          placeholder={t.nutrition.foods.proteinPlaceholder}
           value={protein}
           onChange={(e) => setProtein(e.target.value)}
           className="rounded-lg border border-border bg-surface px-3 py-2 text-sm text-ink"
@@ -160,7 +161,7 @@ function ManualFoodForm() {
         <input
           type="number"
           required
-          placeholder="Carbohidratos (g)"
+          placeholder={t.nutrition.foods.carbsPlaceholder}
           value={carbs}
           onChange={(e) => setCarbs(e.target.value)}
           className="rounded-lg border border-border bg-surface px-3 py-2 text-sm text-ink"
@@ -168,14 +169,14 @@ function ManualFoodForm() {
         <input
           type="number"
           required
-          placeholder="Grasas (g)"
+          placeholder={t.nutrition.foods.fatPlaceholder}
           value={fat}
           onChange={(e) => setFat(e.target.value)}
           className="rounded-lg border border-border bg-surface px-3 py-2 text-sm text-ink"
         />
         <input
           type="number"
-          placeholder="Fibra (g) — opcional"
+          placeholder={t.nutrition.foods.fiberPlaceholder}
           value={fiber}
           onChange={(e) => setFiber(e.target.value)}
           className="col-span-2 rounded-lg border border-border bg-surface px-3 py-2 text-sm text-ink"
@@ -188,9 +189,9 @@ function ManualFoodForm() {
           disabled={isPending}
           className="rounded-lg bg-nutrition px-4 py-2 font-display text-sm font-medium text-white disabled:opacity-60"
         >
-          {isPending ? "Guardando..." : "Guardar"}
+          {isPending ? t.common.saving : t.common.save}
         </button>
-        {saved && <span className="text-xs text-money">Guardado ✓</span>}
+        {saved && <span className="text-xs text-money">{t.common.saved}</span>}
       </div>
     </form>
   );

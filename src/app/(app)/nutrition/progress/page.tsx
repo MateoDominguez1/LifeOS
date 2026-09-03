@@ -2,11 +2,12 @@ import { Card } from "@/components/ui/card";
 import { NutritionNav } from "@/components/nutrition/nutrition-nav";
 import { requireUserId } from "@/lib/auth/session";
 import { getStats } from "@/lib/nutrition/history/getStats";
+import { getT } from "@/lib/i18n";
 import { WeightChart } from "./WeightChart";
 import { WeightForm } from "./WeightForm";
 
 export default async function NutritionProgressPage() {
-  const userId = await requireUserId();
+  const [userId, { t }] = await Promise.all([requireUserId(), getT()]);
 
   const stats = await getStats(userId);
   const diff = stats.currentWeight != null && stats.weightGoal != null ? stats.currentWeight - stats.weightGoal : null;
@@ -15,30 +16,36 @@ export default async function NutritionProgressPage() {
     <div>
       <NutritionNav />
 
-      <h1 className="mb-4 font-display text-xl font-bold text-ink">Progreso</h1>
+      <h1 className="mb-4 font-display text-xl font-bold text-ink">{t.nutrition.progress.title}</h1>
 
       <section className="mb-4 grid grid-cols-2 gap-3">
-        <StatCard label="Calorías promedio" value={`${stats.avgCalories}`} unit="kcal" />
-        <StatCard label="Proteína promedio" value={`${stats.avgProtein}`} unit="g" />
-        <StatCard label="Cumplimiento" value={stats.complianceRate != null ? `${stats.complianceRate}` : "—"} unit="%" />
-        <StatCard label="Días registrados" value={`${stats.daysLogged}`} unit="últimos 30 días" />
+        <StatCard label={t.nutrition.progress.avgCaloriesLabel} value={`${stats.avgCalories}`} unit="kcal" />
+        <StatCard label={t.nutrition.progress.avgProteinLabel} value={`${stats.avgProtein}`} unit="g" />
+        <StatCard label={t.nutrition.progress.complianceLabel} value={stats.complianceRate != null ? `${stats.complianceRate}` : "—"} unit="%" />
+        <StatCard label={t.nutrition.progress.daysLoggedLabel} value={`${stats.daysLogged}`} unit={t.nutrition.progress.last30Days} />
       </section>
 
       <Card className="flex flex-col gap-3">
         <div className="flex items-center justify-between">
-          <h2 className="font-display text-sm font-medium text-ink">Peso</h2>
-          <WeightForm initialWeight={stats.currentWeight} />
+          <h2 className="font-display text-sm font-medium text-ink">{t.nutrition.progress.weightTitle}</h2>
+          <WeightForm initialWeight={stats.currentWeight} t={t} />
         </div>
         {stats.currentWeight != null && (
           <div className="flex flex-wrap gap-4 text-sm text-ink-soft">
-            <span>Actual: {stats.currentWeight} kg</span>
-            {stats.weightGoal != null && <span>Objetivo: {stats.weightGoal} kg</span>}
+            <span>{t.nutrition.progress.currentLabel} {stats.currentWeight} kg</span>
+            {stats.weightGoal != null && <span>{t.nutrition.progress.goalLabel} {stats.weightGoal} kg</span>}
             {diff != null && (
-              <span>{diff > 0 ? `${diff.toFixed(1)} kg por bajar` : diff < 0 ? `${Math.abs(diff).toFixed(1)} kg por subir` : "En objetivo"}</span>
+              <span>
+                {diff > 0
+                  ? `${diff.toFixed(1)} ${t.nutrition.progress.toLoseSuffix}`
+                  : diff < 0
+                    ? `${Math.abs(diff).toFixed(1)} ${t.nutrition.progress.toGainSuffix}`
+                    : t.nutrition.progress.onTarget}
+              </span>
             )}
           </div>
         )}
-        <WeightChart data={stats.weightSeries} />
+        <WeightChart data={stats.weightSeries} t={t} />
       </Card>
     </div>
   );

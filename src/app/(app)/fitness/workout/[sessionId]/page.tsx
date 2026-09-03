@@ -3,10 +3,11 @@ import { prisma } from "@/lib/db/prisma";
 import { requireUserId } from "@/lib/auth/session";
 import { aiProvider } from "@/lib/fitness/ai/rules-provider";
 import type { WeightSuggestion } from "@/lib/fitness/types";
+import { getT } from "@/lib/i18n";
 import { WorkoutSessionClient, type ExerciseCardData } from "./session-client";
 
 export default async function WorkoutSessionPage({ params }: { params: Promise<{ sessionId: string }> }) {
-  const userId = await requireUserId();
+  const [userId, { t }] = await Promise.all([requireUserId(), getT()]);
   const { sessionId } = await params;
 
   const session = await prisma.workoutSession.findUnique({
@@ -61,7 +62,7 @@ export default async function WorkoutSessionPage({ params }: { params: Promise<{
       suggestion = {
         action: "decrease",
         suggestedWeightKg: deloadWeight,
-        reason: `Deload acordado tras una meseta — probá ${deloadWeight}kg y reconstruí tus repeticiones desde ahí.`,
+        reason: `${t.fitness.workout.deloadReasonPrefix} ${deloadWeight}kg ${t.fitness.workout.deloadReasonSuffix}`,
       };
     }
 
@@ -86,9 +87,10 @@ export default async function WorkoutSessionPage({ params }: { params: Promise<{
   return (
     <WorkoutSessionClient
       sessionId={sessionId}
-      dayLabel={session.workoutDay?.label ?? "Entrenamiento"}
+      dayLabel={session.workoutDay?.label ?? t.fitness.common.workoutFallback}
       rirRpeMode={rirRpeMode}
       exercises={exerciseCards}
+      t={t}
     />
   );
 }

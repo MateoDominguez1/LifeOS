@@ -4,23 +4,32 @@ import { requireUserId } from "@/lib/auth/session";
 import { Card } from "@/components/ui/card";
 import { FitnessNav } from "@/components/fitness/fitness-nav";
 import { getActiveProgram, getWeekRange } from "@/lib/fitness/today";
-import { deriveDayType, DAY_TYPE_LABELS_ES } from "@/lib/fitness/day-type";
+import { deriveDayType } from "@/lib/fitness/day-type";
+import { getT } from "@/lib/i18n";
 import { DayMarker } from "./DayMarker";
 
-const DAY_LABELS = ["Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"];
-
-const STATUS_META: Record<string, { icon: string; label: string }> = {
-  rest: { icon: "💤", label: "Descanso" },
-  completed: { icon: "✅", label: "Completado" },
-  // Nothing is ever inferred as "skipped" just from the date passing — the
-  // user marks it themselves. This is the neutral, no-verdict state.
-  unmarked: { icon: "—", label: "Sin marcar" },
-  pending: { icon: "🏋️", label: "Programado" },
-};
-
 export default async function CalendarPage({ searchParams }: { searchParams: Promise<{ offset?: string }> }) {
-  const userId = await requireUserId();
+  const [userId, { t }] = await Promise.all([requireUserId(), getT()]);
   const params = await searchParams;
+
+  const DAY_LABELS = [
+    t.weekdaysFull.sun,
+    t.weekdaysFull.mon,
+    t.weekdaysFull.tue,
+    t.weekdaysFull.wed,
+    t.weekdaysFull.thu,
+    t.weekdaysFull.fri,
+    t.weekdaysFull.sat,
+  ];
+
+  const STATUS_META: Record<string, { icon: string; label: string }> = {
+    rest: { icon: "💤", label: t.fitness.calendar.statusRest },
+    completed: { icon: "✅", label: t.fitness.calendar.statusCompleted },
+    // Nothing is ever inferred as "skipped" just from the date passing — the
+    // user marks it themselves. This is the neutral, no-verdict state.
+    unmarked: { icon: "—", label: t.fitness.calendar.statusUnmarked },
+    pending: { icon: "🏋️", label: t.fitness.calendar.statusPending },
+  };
   const offset = params.offset ? Number(params.offset) : 0;
 
   const reference = new Date();
@@ -89,8 +98,8 @@ export default async function CalendarPage({ searchParams }: { searchParams: Pro
                   <div className="text-sm font-medium text-ink">{day.label}</div>
                   <div className="text-xs text-ink-faint">
                     {day.scheduledDay
-                      ? `Día ${day.scheduledDay.order + 1} · ${DAY_TYPE_LABELS_ES[deriveDayType(day.scheduledDay.exercises.map((we) => we.exercise))]}`
-                      : "Descanso"}
+                      ? `${t.fitness.programs.dayPrefix} ${day.scheduledDay.order + 1} · ${t.fitness.dayTypes[deriveDayType(day.scheduledDay.exercises.map((we) => we.exercise))]}`
+                      : t.fitness.calendar.statusRest}
                   </div>
                 </div>
                 <div className="flex shrink-0 items-center gap-2">
@@ -104,6 +113,7 @@ export default async function CalendarPage({ searchParams }: { searchParams: Pro
                       sessionId={day.sessionId}
                       isCompleted={day.status === "completed"}
                       canUndo={day.status === "completed" && !day.hasLoggedSets}
+                      t={t}
                     />
                   )}
                 </div>

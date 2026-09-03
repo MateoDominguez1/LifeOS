@@ -3,18 +3,22 @@
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { cn } from "@/lib/cn";
+import type { Dictionary } from "@/lib/i18n";
 import { logRecipeAsMeal } from "../actions";
 
 type MealType = "BREAKFAST" | "LUNCH" | "DINNER" | "SNACK";
 
-const MEAL_TYPES: { value: MealType; label: string }[] = [
-  { value: "BREAKFAST", label: "Desayuno" },
-  { value: "LUNCH", label: "Almuerzo" },
-  { value: "DINNER", label: "Cena" },
-  { value: "SNACK", label: "Snack" },
-];
+const MEAL_TYPE_VALUES: MealType[] = ["BREAKFAST", "LUNCH", "DINNER", "SNACK"];
 
-export function LogRecipeForm({ recipeId, defaultServings }: { recipeId: string; defaultServings: number }) {
+export function LogRecipeForm({
+  recipeId,
+  defaultServings,
+  t,
+}: {
+  recipeId: string;
+  defaultServings: number;
+  t: Dictionary;
+}) {
   const router = useRouter();
   const [mealType, setMealType] = useState<MealType>("LUNCH");
   const [servings, setServings] = useState(1);
@@ -29,31 +33,31 @@ export function LogRecipeForm({ recipeId, defaultServings }: { recipeId: string;
         router.push("/nutrition");
         router.refresh();
       } catch {
-        setError("No pudimos registrar la comida. Revisá las porciones ingresadas.");
+        setError(t.nutrition.recipes.logSaveError);
       }
     });
   }
 
   return (
     <div className="space-y-3 rounded-2xl border border-border-soft p-4">
-      <p className="font-display text-sm font-medium text-ink">Registrar como comida</p>
+      <p className="font-display text-sm font-medium text-ink">{t.nutrition.recipes.logAsMealTitle}</p>
       <div className="grid grid-cols-4 gap-2">
-        {MEAL_TYPES.map((t) => (
+        {MEAL_TYPE_VALUES.map((value) => (
           <button
-            key={t.value}
+            key={value}
             type="button"
-            onClick={() => setMealType(t.value)}
+            onClick={() => setMealType(value)}
             className={cn(
               "rounded-lg border px-2 py-2 font-display text-xs font-medium transition-colors",
-              mealType === t.value ? "border-nutrition bg-nutrition-soft text-nutrition" : "border-border text-ink-soft"
+              mealType === value ? "border-nutrition bg-nutrition-soft text-nutrition" : "border-border text-ink-soft"
             )}
           >
-            {t.label}
+            {t.mealTypes[value]}
           </button>
         ))}
       </div>
       <label className="flex items-center gap-2 text-sm text-ink-soft">
-        Porciones consumidas
+        {t.nutrition.recipes.servingsConsumedLabel}
         <input
           type="number"
           step={0.5}
@@ -71,7 +75,7 @@ export function LogRecipeForm({ recipeId, defaultServings }: { recipeId: string;
         onClick={handleLog}
         className="w-full rounded-xl bg-nutrition px-4 py-2.5 font-display text-sm font-medium text-white disabled:opacity-60"
       >
-        {isPending ? "Guardando..." : "Registrar"}
+        {isPending ? t.common.saving : t.nutrition.recipes.register}
       </button>
     </div>
   );

@@ -1,9 +1,18 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import type { Dictionary } from "@/lib/i18n";
 import { addExercise } from "./actions";
 
-export function AddExerciseForm({ workoutDayId, options }: { workoutDayId: string; options: { id: string; name: string }[] }) {
+export function AddExerciseForm({
+  workoutDayId,
+  options,
+  t,
+}: {
+  workoutDayId: string;
+  options: { id: string; name: string }[];
+  t: Dictionary;
+}) {
   const [selected, setSelected] = useState(options[0]?.id ?? "");
   const [isPending, startTransition] = useTransition();
 
@@ -28,7 +37,7 @@ export function AddExerciseForm({ workoutDayId, options }: { workoutDayId: strin
         onClick={() => startTransition(() => addExercise(workoutDayId, selected))}
         className="rounded-lg bg-fitness px-3 py-1.5 text-sm font-medium text-white disabled:opacity-60"
       >
-        Agregar
+        {t.common.add}
       </button>
     </div>
   );

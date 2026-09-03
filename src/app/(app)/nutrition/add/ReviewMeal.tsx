@@ -5,6 +5,7 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { cn } from "@/lib/cn";
+import type { Dictionary } from "@/lib/i18n";
 import { searchFoodsAction } from "@/app/(app)/nutrition/foods/actions";
 import { confirmMeal } from "./actions";
 import { confidenceLabel, inferMealType } from "./confidence";
@@ -12,21 +13,18 @@ import { computeFoodTotals, computeMealTotals, type DraftMeal, type DraftMealFoo
 
 type MealType = "BREAKFAST" | "LUNCH" | "DINNER" | "SNACK";
 
-const MEAL_TYPES: { value: MealType; label: string }[] = [
-  { value: "BREAKFAST", label: "Desayuno" },
-  { value: "LUNCH", label: "Almuerzo" },
-  { value: "DINNER", label: "Cena" },
-  { value: "SNACK", label: "Snack" },
-];
+const MEAL_TYPE_VALUES: MealType[] = ["BREAKFAST", "LUNCH", "DINNER", "SNACK"];
 
 export function ReviewMeal({
   photoDataUrl,
   draft,
   onRestart,
+  t,
 }: {
   photoDataUrl?: string;
   draft: DraftMeal;
   onRestart: () => void;
+  t: Dictionary;
 }) {
   const router = useRouter();
   const [mealName, setMealName] = useState(draft.mealName);
@@ -36,6 +34,12 @@ export function ReviewMeal({
   const [isSaving, startSaving] = useTransition();
 
   const totals = computeMealTotals(foods);
+  const confidenceLabels = {
+    noMatch: t.nutrition.reviewMeal.confidenceNoMatch,
+    high: t.nutrition.reviewMeal.confidenceHigh,
+    medium: t.nutrition.reviewMeal.confidenceMedium,
+    low: t.nutrition.reviewMeal.confidenceLow,
+  };
 
   function updateFood(clientId: string, patch: Partial<DraftMealFood>) {
     setFoods((prev) => prev.map((f) => (f.clientId === clientId ? { ...f, ...patch } : f)));
@@ -77,18 +81,18 @@ export function ReviewMeal({
         router.push("/nutrition");
         router.refresh();
       } catch {
-        setError("No pudimos guardar la comida. Intentá de nuevo.");
+        setError(t.nutrition.reviewMeal.saveError);
       }
     });
   }
 
-  const overall = confidenceLabel(draft.confidence);
+  const overall = confidenceLabel(draft.confidence, confidenceLabels);
 
   return (
     <div className="mx-auto max-w-lg space-y-6 px-4 py-8">
       <div className="flex gap-4">
         {photoDataUrl && (
-          <Image src={photoDataUrl} alt="Comida analizada" width={96} height={96} unoptimized className="h-24 w-24 shrink-0 rounded-xl object-cover" />
+          <Image src={photoDataUrl} alt={t.nutrition.reviewMeal.photoAlt} width={96} height={96} unoptimized className="h-24 w-24 shrink-0 rounded-xl object-cover" />
         )}
         <div className="min-w-0 flex-1 space-y-2">
           <input
@@ -101,17 +105,17 @@ export function ReviewMeal({
       </div>
 
       <div className="grid grid-cols-4 gap-2">
-        {MEAL_TYPES.map((t) => (
+        {MEAL_TYPE_VALUES.map((value) => (
           <button
-            key={t.value}
+            key={value}
             type="button"
-            onClick={() => setMealType(t.value)}
+            onClick={() => setMealType(value)}
             className={cn(
               "rounded-lg border px-2 py-2 font-display text-xs font-medium transition-colors",
-              mealType === t.value ? "border-nutrition bg-nutrition-soft text-nutrition" : "border-border text-ink-soft"
+              mealType === value ? "border-nutrition bg-nutrition-soft text-nutrition" : "border-border text-ink-soft"
             )}
           >
-            {t.label}
+            {t.mealTypes[value]}
           </button>
         ))}
       </div>
@@ -119,29 +123,37 @@ export function ReviewMeal({
       <div className="rounded-2xl border border-border-soft p-4 text-center">
         <div className="font-display text-2xl font-bold text-ink">≈ {totals.calories} kcal</div>
         <div className="mt-1 flex justify-center gap-3 text-xs text-ink-soft">
-          <span>{totals.protein} g P</span>
-          <span>{totals.carbs} g C</span>
-          <span>{totals.fat} g G</span>
-          <span>{totals.fiber} g fibra</span>
+          <span>{totals.protein} g {t.nutrition.common.macroProteinAbbrev}</span>
+          <span>{totals.carbs} g {t.nutrition.common.macroCarbsAbbrev}</span>
+          <span>{totals.fat} g {t.nutrition.common.macroFatAbbrev}</span>
+          <span>{totals.fiber} g {t.nutrition.common.fiberUnitLabel}</span>
         </div>
         <p className="mt-2 text-[11px] text-ink-faint">
-          Estimación de la IA{photoDataUrl ? " a partir de la foto" : ""}. Puede tener errores — revisá las cantidades.
+          {t.nutrition.reviewMeal.aiEstimatePrefix}
+          {photoDataUrl ? t.nutrition.reviewMeal.aiEstimateFromPhotoSuffix : ""}. {t.nutrition.reviewMeal.aiEstimateCaveat}
         </p>
       </div>
 
       <div className="space-y-2">
         {foods.map((food) => (
-          <FoodRow key={food.clientId} food={food} onChange={(patch) => updateFood(food.clientId, patch)} onRemove={() => removeFood(food.clientId)} />
+          <FoodRow
+            key={food.clientId}
+            food={food}
+            onChange={(patch) => updateFood(food.clientId, patch)}
+            onRemove={() => removeFood(food.clientId)}
+            t={t}
+            confidenceLabels={confidenceLabels}
+          />
         ))}
       </div>
 
-      <AddFoodSearch onAdd={addFood} />
+      <AddFoodSearch onAdd={addFood} t={t} />
 
       {error && <p className="text-center text-sm text-danger">{error}</p>}
 
       <div className="flex gap-3">
         <button type="button" onClick={onRestart} className="flex-1 rounded-xl border border-border px-4 py-3 font-display text-sm font-medium text-ink">
-          Sacar otra foto
+          {t.nutrition.reviewMeal.retakePhoto}
         </button>
         <button
           type="button"
@@ -149,7 +161,7 @@ export function ReviewMeal({
           disabled={isSaving || foods.length === 0}
           className="flex-1 rounded-xl bg-nutrition px-4 py-3 font-display text-sm font-medium text-white transition-colors hover:opacity-90 disabled:opacity-60"
         >
-          {isSaving ? "Guardando..." : "Confirmar comida"}
+          {isSaving ? t.common.saving : t.nutrition.reviewMeal.confirmMeal}
         </button>
       </div>
     </div>
@@ -160,14 +172,18 @@ function FoodRow({
   food,
   onChange,
   onRemove,
+  t,
+  confidenceLabels,
 }: {
   food: DraftMealFood;
   onChange: (patch: Partial<DraftMealFood>) => void;
   onRemove: () => void;
+  t: Dictionary;
+  confidenceLabels: { noMatch: string; high: string; medium: string; low: string };
 }) {
   const totals = computeFoodTotals(food);
   const isAiDetected = food.aiConfidence != null;
-  const conf = confidenceLabel(food.foodItemId ? food.aiConfidence : null);
+  const conf = confidenceLabel(food.foodItemId ? food.aiConfidence : null, confidenceLabels);
 
   return (
     <div className="rounded-xl border border-border-soft p-3">
@@ -179,22 +195,22 @@ function FoodRow({
             <span className={`mt-1 inline-block rounded-full px-2 py-0.5 text-[11px] font-medium ${conf.className}`}>{conf.label}</span>
           ) : (
             <span className="mt-1 inline-block rounded-full bg-surface-raised px-2 py-0.5 text-[11px] font-medium text-ink-faint">
-              Agregado manualmente
+              {t.nutrition.common.manualEntry}
             </span>
           )}
         </div>
         <button type="button" onClick={onRemove} className="shrink-0 text-xs text-ink-faint hover:text-danger">
-          Eliminar
+          {t.nutrition.reviewMeal.removeFood}
         </button>
       </div>
 
       {!food.foodItemId && (
-        <p className="mt-2 text-xs text-danger">No encontramos este alimento en la base. Buscá uno abajo para reemplazarlo.</p>
+        <p className="mt-2 text-xs text-danger">{t.nutrition.reviewMeal.notFoundInDatabase}</p>
       )}
 
       <div className="mt-2 flex items-center gap-3">
         <label className="flex items-center gap-1.5 text-xs text-ink-soft">
-          Cantidad
+          {t.nutrition.reviewMeal.quantityLabel}
           <input
             type="number"
             min={0}
@@ -206,16 +222,16 @@ function FoodRow({
         </label>
         <div className="flex gap-3 text-xs text-ink-soft">
           <span>{totals.calories} kcal</span>
-          <span>{totals.protein} g P</span>
-          <span>{totals.carbs} g C</span>
-          <span>{totals.fat} g G</span>
+          <span>{totals.protein} g {t.nutrition.common.macroProteinAbbrev}</span>
+          <span>{totals.carbs} g {t.nutrition.common.macroCarbsAbbrev}</span>
+          <span>{totals.fat} g {t.nutrition.common.macroFatAbbrev}</span>
         </div>
       </div>
     </div>
   );
 }
 
-function AddFoodSearch({ onAdd }: { onAdd: (food: FoodItem) => void }) {
+function AddFoodSearch({ onAdd, t }: { onAdd: (food: FoodItem) => void; t: Dictionary }) {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<FoodItem[]>([]);
   const [isSearching, startSearch] = useTransition();
@@ -238,10 +254,10 @@ function AddFoodSearch({ onAdd }: { onAdd: (food: FoodItem) => void }) {
         type="text"
         value={query}
         onChange={(e) => handleChange(e.target.value)}
-        placeholder="+ Agregar otro alimento"
+        placeholder={t.nutrition.reviewMeal.addFoodPlaceholder}
         className="w-full rounded-xl border border-border bg-surface px-4 py-2.5 text-sm text-ink"
       />
-      {isSearching && <p className="text-xs text-ink-faint">Buscando...</p>}
+      {isSearching && <p className="text-xs text-ink-faint">{t.nutrition.reviewMeal.searching}</p>}
       {results.length > 0 && (
         <div className="space-y-1">
           {results.slice(0, 6).map((food) => (

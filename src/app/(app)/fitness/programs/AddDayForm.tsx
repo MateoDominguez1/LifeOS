@@ -1,16 +1,19 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import type { Dictionary } from "@/lib/i18n";
 import { addWorkoutDay } from "./actions";
 
 export function AddDayForm({
   programId,
   usedWeekdays,
   weekdayLabels,
+  t,
 }: {
   programId: string;
   usedWeekdays: number[];
   weekdayLabels: string[];
+  t: Dictionary;
 }) {
   const options = weekdayLabels.map((label, value) => ({ value, label })).filter((o) => !usedWeekdays.includes(o.value));
   const [selected, setSelected] = useState(options[0]?.value ?? -1);
@@ -25,7 +28,7 @@ export function AddDayForm({
       try {
         await addWorkoutDay(programId, selected);
       } catch (e) {
-        setError(e instanceof Error ? e.message : "No pudimos agregar el día.");
+        setError(e instanceof Error ? e.message : t.fitness.programs.addDayError);
       }
     });
   }
@@ -50,7 +53,7 @@ export function AddDayForm({
           onClick={handleAdd}
           className="rounded-lg bg-fitness px-3 py-1.5 text-sm font-medium text-white disabled:opacity-60"
         >
-          + Agregar día
+          {t.fitness.programs.addDay}
         </button>
       </div>
       {error && <p className="mt-2 text-xs text-danger">{error}</p>}
