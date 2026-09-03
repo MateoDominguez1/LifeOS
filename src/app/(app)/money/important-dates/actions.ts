@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db/prisma";
 import { requireUserId } from "@/lib/auth/session";
 import { importantDateSchema } from "@/lib/money/validation/importantDates";
+import { syncImportantDateToCalendar, removeImportantDateFromCalendar } from "@/lib/calendar/importantDateSync";
 
 export type ActionState = { error?: string } | undefined;
 
@@ -31,9 +32,10 @@ export async function createImportantDateAction(
     return { error: parsed.error.issues[0]?.message ?? "Datos inválidos" };
   }
 
-  await prisma.importantDate.create({
+  const created = await prisma.importantDate.create({
     data: { ...parsed.data, relationship: parsed.data.relationship || null, userId },
   });
+  await syncImportantDateToCalendar(userId, created.id);
 
   revalidatePath("/money/important-dates");
   revalidatePath("/money");
@@ -59,6 +61,7 @@ export async function updateImportantDateAction(
     where: { id },
     data: { ...parsed.data, relationship: parsed.data.relationship || null },
   });
+  await syncImportantDateToCalendar(userId, id);
 
   revalidatePath("/money/important-dates");
   revalidatePath("/money");
@@ -71,6 +74,11 @@ export async function toggleImportantDateActiveAction(id: string) {
   if (!existing) throw new Error("No encontrado");
 
   await prisma.importantDate.update({ where: { id }, data: { isActive: !existing.isActive } });
+  if (existing.isActive) {
+    await removeImportantDateFromCalendar(userId, id);
+  } else {
+    await syncImportantDateToCalendar(userId, id);
+  }
 
   revalidatePath("/money/important-dates");
   revalidatePath("/money");
@@ -81,6 +89,7 @@ export async function deleteImportantDateAction(id: string) {
   const existing = await prisma.importantDate.findFirst({ where: { id, userId } });
   if (!existing) throw new Error("No encontrado");
 
+  await removeImportantDateFromCalendar(userId, id);
   await prisma.importantDate.delete({ where: { id } });
 
   revalidatePath("/money/important-dates");

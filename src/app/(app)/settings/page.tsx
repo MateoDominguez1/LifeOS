@@ -1,13 +1,24 @@
 import { auth } from "@/lib/auth/auth";
+import { prisma } from "@/lib/db/prisma";
+import { requireUserId } from "@/lib/auth/session";
 import { Card, CardLabel } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { LanguageSwitcher } from "@/components/language-switcher";
 import { getT } from "@/lib/i18n";
 import { logoutAction } from "./actions";
+import { CalendarConnectionCard } from "./CalendarConnectionCard";
 
 export default async function SettingsPage() {
-  const [session, { locale, t }] = await Promise.all([auth(), getT()]);
+  const userId = await requireUserId();
+  const [session, { locale, t }, connection] = await Promise.all([
+    auth(),
+    getT(),
+    prisma.calendarConnection.findUnique({
+      where: { userId },
+      select: { appleIdEmail: true, lastSyncedAt: true, lastSyncError: true },
+    }),
+  ]);
 
   return (
     <div className="flex flex-col gap-6">
@@ -36,6 +47,8 @@ export default async function SettingsPage() {
         </div>
         <LanguageSwitcher current={locale} />
       </Card>
+
+      <CalendarConnectionCard t={t.settings} connection={connection} />
 
       <Card>
         <CardLabel>{t.settings.session}</CardLabel>

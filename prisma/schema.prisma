@@ -94,9 +94,10 @@ model User {
   createdExercises  Exercise[]
 
   // Shared / cross-domain
-  weightEntries  WeightEntry[]
-  goals          Goal[]
-  notifications  Notification[]
+  weightEntries      WeightEntry[]
+  goals              Goal[]
+  notifications      Notification[]
+  calendarConnection CalendarConnection?
 
   // People
   managedProfiles       ManagedProfile[]        @relation("ProfileOwner")
@@ -400,7 +401,33 @@ model ImportantDate {
   createdAt         DateTime          @default(now())
   updatedAt         DateTime          @updatedAt
 
+  calendarSync CalendarSyncItem?
+
   @@index([userId])
+}
+
+model CalendarConnection {
+  id                   String    @id @default(cuid())
+  userId               String    @unique
+  user                 User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  provider             String    @default("ICLOUD")
+  appleIdEmail         String
+  credentialCiphertext String
+  credentialIv         String
+  calendarHomeUrl      String
+  lifeosCalendarUrl    String
+  connectedAt          DateTime  @default(now())
+  lastSyncedAt         DateTime?
+  lastSyncError        String?
+}
+
+model CalendarSyncItem {
+  id              String        @id @default(cuid())
+  importantDateId String        @unique
+  importantDate   ImportantDate @relation(fields: [importantDateId], references: [id], onDelete: Cascade)
+  externalUid     String
+  externalEtag    String?
+  updatedAt       DateTime      @updatedAt
 }
 
 model ShoppingList {
