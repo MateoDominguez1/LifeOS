@@ -1,8 +1,9 @@
 import { cn } from "@/lib/cn";
+import type { Dictionary } from "@/lib/i18n";
 
-const STEPS = ["Sueldo", "Gastos fijos", "Supermercado"];
+export function StepIndicator({ current, t }: { current: number; t: Dictionary }) {
+  const STEPS = [t.money.onboarding.stepSalary, t.money.fixedExpenses.title, t.money.budgets.typeGrocery];
 
-export function StepIndicator({ current }: { current: number }) {
   return (
     <div className="mb-5 flex items-center gap-1.5">
       {STEPS.map((label, i) => {

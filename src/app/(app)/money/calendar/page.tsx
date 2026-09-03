@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { addMonths, endOfMonth, endOfWeek, format, isSameMonth, isToday, startOfMonth, startOfWeek, subMonths } from "date-fns";
-import { es } from "date-fns/locale";
 import { MoneyNav } from "@/components/money/money-nav";
 import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/cn";
@@ -10,6 +9,8 @@ import { generateOccurrences } from "@/lib/money/generateOccurrences";
 import { prisma } from "@/lib/db/prisma";
 import { requireUserId } from "@/lib/auth/session";
 import { formatCurrency } from "@/lib/money/format";
+import { getT } from "@/lib/i18n";
+import { dateFnsLocales } from "@/lib/i18n/date-fns-locale";
 
 type DayEvent = {
   key: string;
@@ -31,7 +32,7 @@ export default async function CalendarPage({
   searchParams: Promise<{ month?: string }>;
 }) {
   const { month: monthParam } = await searchParams;
-  const userId = await requireUserId();
+  const [userId, { locale, t }] = await Promise.all([requireUserId(), getT()]);
 
   const anchor = monthParam ? new Date(`${monthParam}-01T00:00:00`) : new Date();
   const monthStart = startOfMonth(anchor);
@@ -105,7 +106,7 @@ export default async function CalendarPage({
     const expense = fixedExpenseById.get(item.fixedExpenseId);
     pushEvent(item.dueDate, {
       key: `fx-${item.fixedExpenseId}-${item.dueDate.toISOString()}`,
-      label: `${expense?.name ?? "Gasto fijo"} (previsto)`,
+      label: `${expense?.name ?? t.money.common.fixedExpenseFallback} ${t.money.common.forecastSuffix}`,
       amount: -item.amount.toNumber(),
       tone: "warning",
     });
@@ -119,7 +120,7 @@ export default async function CalendarPage({
     for (const occurrence of occurrences) {
       pushEvent(occurrence, {
         key: `inc-${income.id}-${occurrence.toISOString()}`,
-        label: `${income.name} (previsto)`,
+        label: `${income.name} ${t.money.common.forecastSuffix}`,
         amount: income.amount ? income.amount.toNumber() : null,
         tone: "success",
       });
@@ -131,10 +132,10 @@ export default async function CalendarPage({
     days.push(cursor);
   }
 
-  const monthLabel = format(monthStart, "MMMM yyyy", { locale: es });
+  const monthLabel = format(monthStart, "MMMM yyyy", { locale: dateFnsLocales[locale] });
   const prevMonth = format(subMonths(monthStart, 1), "yyyy-MM");
   const nextMonth = format(addMonths(monthStart, 1), "yyyy-MM");
-  const weekdayLabels = ["L", "M", "X", "J", "V", "S", "D"];
+  const weekdayLabels = [t.weekdaysShort.mon, t.weekdaysShort.tue, t.weekdaysShort.wed, t.weekdaysShort.thu, t.weekdaysShort.fri, t.weekdaysShort.sat, t.weekdaysShort.sun];
 
   return (
     <div>
@@ -190,7 +191,7 @@ export default async function CalendarPage({
                         {event.amount === null ? event.label : `${event.amount >= 0 ? "+" : ""}${formatCurrency(event.amount)}`}
                       </p>
                     ))}
-                    {events.length > 3 && <p className="text-[10px] text-ink-faint">+{events.length - 3} más</p>}
+                    {events.length > 3 && <p className="text-[10px] text-ink-faint">+{events.length - 3} {t.dashboard.goalsMore}</p>}
                   </div>
                 </div>
               );

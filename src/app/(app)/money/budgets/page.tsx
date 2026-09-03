@@ -9,10 +9,12 @@ import { formatCurrency } from "@/lib/money/format";
 import { calculateBudgetProgress } from "@/lib/money/calculateBudgetProgress";
 import { calculateCurrentBudgetPeriod } from "@/lib/money/calculateCurrentBudgetPeriod";
 import { getPrimaryIncomeAndPeriod } from "@/lib/money/period";
+import { getT } from "@/lib/i18n";
 import { deleteBudgetAction, toggleBudgetActiveAction } from "./actions";
 
 export default async function BudgetsPage() {
   const userId = await requireUserId();
+  const { t } = await getT();
   const today = new Date();
 
   const [budgets, { period }] = await Promise.all([
@@ -35,17 +37,17 @@ export default async function BudgetsPage() {
     <div>
       <MoneyNav />
       <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
-        <h1 className="font-display text-xl font-bold">Presupuestos</h1>
+        <h1 className="font-display text-xl font-bold">{t.money.budgets.title}</h1>
         <Link
           href="/money/budgets/new"
           className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-accent px-3 font-display text-sm font-medium text-white hover:opacity-90"
         >
-          <Plus size={15} /> Nuevo presupuesto
+          <Plus size={15} /> {t.money.budgets.newBudget}
         </Link>
       </div>
 
       {budgets.length === 0 ? (
-        <Card className="py-10 text-center text-sm text-ink-soft">Todavía no configuraste presupuestos.</Card>
+        <Card className="py-10 text-center text-sm text-ink-soft">{t.money.budgets.empty}</Card>
       ) : (
         <div className="flex flex-col gap-3">
           {budgets.map((budget) => {
@@ -77,7 +79,7 @@ export default async function BudgetsPage() {
                       {budget.name}
                     </div>
                     <CardLabel className="mt-1">
-                      {formatCurrency(progress.monthly.spent.toNumber())} de{" "}
+                      {formatCurrency(progress.monthly.spent.toNumber())} {t.money.common.of}{" "}
                       {formatCurrency(budget.monthlyAmount.toNumber())}
                     </CardLabel>
                   </div>
@@ -86,14 +88,14 @@ export default async function BudgetsPage() {
                       href={`/money/budgets/${budget.id}/edit`}
                       className="rounded-lg px-2 py-1 text-xs font-medium text-ink-faint hover:bg-surface-raised hover:text-ink"
                     >
-                      Editar
+                      {t.common.edit}
                     </Link>
                     <form action={toggleBudgetActiveAction.bind(null, budget.id)}>
                       <button
                         type="submit"
                         className="rounded-lg px-2 py-1 text-xs font-medium text-ink-faint hover:bg-surface-raised hover:text-ink"
                       >
-                        {budget.isActive ? "Desactivar" : "Activar"}
+                        {budget.isActive ? t.money.common.deactivate : t.money.common.activate}
                       </button>
                     </form>
                     <form action={deleteBudgetAction.bind(null, budget.id)}>
@@ -101,7 +103,7 @@ export default async function BudgetsPage() {
                         type="submit"
                         className="rounded-lg px-2 py-1 text-xs font-medium text-ink-faint hover:bg-danger-soft hover:text-danger"
                       >
-                        Eliminar
+                        {t.common.delete}
                       </button>
                     </form>
                   </div>

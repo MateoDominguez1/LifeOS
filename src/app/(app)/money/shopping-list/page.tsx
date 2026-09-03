@@ -5,12 +5,14 @@ import { Card, CardLabel } from "@/components/ui/card";
 import { formatCurrency } from "@/lib/money/format";
 import { calculateBudgetProgress } from "@/lib/money/calculateBudgetProgress";
 import { getPrimaryIncomeAndPeriod } from "@/lib/money/period";
+import { getT } from "@/lib/i18n";
 import { AddItemsForm } from "./add-items-form";
 import { CompleteForm } from "./complete-form";
 import { deleteShoppingListItemAction } from "./actions";
 
 export default async function ShoppingListPage() {
   const userId = await requireUserId();
+  const { t } = await getT();
   const today = new Date();
 
   const [list, accounts, categories, groceryBudget, { period }] = await Promise.all([
@@ -70,21 +72,23 @@ export default async function ShoppingListPage() {
     <div>
       <MoneyNav />
       <div className="flex flex-col gap-4">
-        <h1 className="font-display text-xl font-bold">Lista de compras</h1>
+        <h1 className="font-display text-xl font-bold">{t.money.shoppingList.title}</h1>
 
         <Card>
-          <AddItemsForm />
+          <AddItemsForm t={t} />
         </Card>
 
         {items.length === 0 ? (
           <Card className="py-10 text-center text-sm text-ink-soft">
-            Todavía no agregaste productos a la lista.
+            {t.money.shoppingList.empty}
           </Card>
         ) : (
           <>
             <Card>
               <div className="flex items-center justify-between">
-                <CardLabel>{items.length} {items.length === 1 ? "producto" : "productos"}</CardLabel>
+                <CardLabel>
+                  {items.length} {items.length === 1 ? t.money.shoppingList.productSingular : t.money.shoppingList.productPlural}
+                </CardLabel>
                 <span className="font-mono text-sm font-semibold tabular-nums text-ink">
                   {formatCurrency(total)}
                 </span>
@@ -100,7 +104,7 @@ export default async function ShoppingListPage() {
                       <form action={deleteShoppingListItemAction.bind(null, item.id)}>
                         <button
                           type="submit"
-                          aria-label="Quitar producto"
+                          aria-label={t.money.shoppingList.removeItemAriaLabel}
                           className="text-ink-faint hover:text-danger"
                         >
                           ×
@@ -113,20 +117,20 @@ export default async function ShoppingListPage() {
               {comparison ? (
                 <p className={`mt-3 text-sm ${comparison.withinBudget ? "text-money" : "text-danger"}`}>
                   {comparison.withinBudget
-                    ? "Esta lista entra en tu presupuesto de esta semana."
-                    : `Esta lista se pasa por ${formatCurrency(total - comparison.remaining)} de lo que te queda esta semana.`}{" "}
-                  Te quedan {formatCurrency(comparison.remaining)} de supermercado esta semana.
+                    ? t.money.shoppingList.withinBudget
+                    : `${t.money.shoppingList.overBudgetPrefix} ${formatCurrency(total - comparison.remaining)} ${t.money.shoppingList.overBudgetSuffix}`}{" "}
+                  {t.money.shoppingList.remainingGroceryPrefix} {formatCurrency(comparison.remaining)} {t.money.shoppingList.remainingGrocerySuffix}
                 </p>
               ) : (
                 <p className="mt-3 text-sm text-ink-soft">
-                  Todavía no configuraste un presupuesto de supermercado, así que no puedo comparar.
+                  {t.money.shoppingList.noGroceryBudget}
                 </p>
               )}
             </Card>
 
             {list && (
               <Card>
-                <CardLabel>Convertir en gasto</CardLabel>
+                <CardLabel>{t.money.shoppingList.convertToExpense}</CardLabel>
                 <div className="mt-4">
                   <CompleteForm
                     shoppingListId={list.id}
@@ -135,6 +139,7 @@ export default async function ShoppingListPage() {
                     defaultAmount={total}
                     defaultAccountId={groceryBudget?.accountId ?? accounts[0]?.id ?? ""}
                     defaultCategoryId={groceryBudget?.categoryId ?? ""}
+                    t={t}
                   />
                 </div>
               </Card>

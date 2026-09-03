@@ -4,6 +4,7 @@ import { useActionState } from "react";
 import { Select } from "@/components/ui/select";
 import { Input, Label } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import type { Dictionary } from "@/lib/i18n";
 import type { ActionState } from "./actions";
 
 const initialState: ActionState = undefined;
@@ -13,7 +14,8 @@ export function FixedExpenseForm({
   accounts,
   categories,
   defaults,
-  submitLabel = "Crear gasto fijo",
+  submitLabel,
+  t,
 }: {
   action: (state: ActionState, formData: FormData) => Promise<ActionState>;
   accounts: { id: string; name: string }[];
@@ -29,6 +31,7 @@ export function FixedExpenseForm({
     isActive: boolean;
   };
   submitLabel?: string;
+  t: Dictionary;
 }) {
   const [state, formAction, pending] = useActionState(action, initialState);
 
@@ -36,11 +39,11 @@ export function FixedExpenseForm({
     <form action={formAction} className="flex flex-col gap-4">
       {!defaults && <input type="hidden" name="isActive" value="on" />}
       <div>
-        <Label htmlFor="name">Nombre</Label>
-        <Input id="name" name="name" required placeholder="Ej. Alquiler" defaultValue={defaults?.name} />
+        <Label htmlFor="name">{t.money.common.name}</Label>
+        <Input id="name" name="name" required placeholder={t.money.fixedExpenses.namePlaceholder} defaultValue={defaults?.name} />
       </div>
       <div>
-        <Label htmlFor="amount">Monto</Label>
+        <Label htmlFor="amount">{t.money.common.amount}</Label>
         <Input
           id="amount"
           name="amount"
@@ -52,15 +55,15 @@ export function FixedExpenseForm({
         />
       </div>
       <div>
-        <Label htmlFor="frequency">Frecuencia</Label>
+        <Label htmlFor="frequency">{t.money.common.frequency}</Label>
         <Select id="frequency" name="frequency" defaultValue={defaults?.frequency ?? "MONTHLY"}>
-          <option value="WEEKLY">Semanal</option>
-          <option value="MONTHLY">Mensual</option>
-          <option value="YEARLY">Anual</option>
+          <option value="WEEKLY">{t.money.common.frequencyWeekly}</option>
+          <option value="MONTHLY">{t.money.common.frequencyMonthly}</option>
+          <option value="YEARLY">{t.money.common.frequencyYearly}</option>
         </Select>
       </div>
       <div>
-        <Label htmlFor="dueDay">Día de vencimiento</Label>
+        <Label htmlFor="dueDay">{t.money.fixedExpenses.dueDayLabel}</Label>
         <Input
           id="dueDay"
           name="dueDay"
@@ -72,10 +75,10 @@ export function FixedExpenseForm({
         />
       </div>
       <div>
-        <Label htmlFor="accountId">Cuenta</Label>
+        <Label htmlFor="accountId">{t.money.common.account}</Label>
         <Select id="accountId" name="accountId" required defaultValue={defaults?.accountId ?? ""}>
           <option value="" disabled>
-            Elegí una cuenta
+            {t.money.common.chooseAccount}
           </option>
           {accounts.map((a) => (
             <option key={a.id} value={a.id}>
@@ -85,9 +88,9 @@ export function FixedExpenseForm({
         </Select>
       </div>
       <div>
-        <Label htmlFor="categoryId">Categoría (opcional)</Label>
+        <Label htmlFor="categoryId">{t.money.fixedExpenses.categoryOptionalLabel}</Label>
         <Select id="categoryId" name="categoryId" defaultValue={defaults?.categoryId ?? ""}>
-          <option value="">Sin categoría</option>
+          <option value="">{t.money.common.noCategory}</option>
           {categories.map((c) => (
             <option key={c.id} value={c.id}>
               {c.icon} {c.name}
@@ -96,7 +99,7 @@ export function FixedExpenseForm({
         </Select>
       </div>
       <div>
-        <Label htmlFor="startDate">Empieza</Label>
+        <Label htmlFor="startDate">{t.money.fixedExpenses.startsLabel}</Label>
         <Input
           id="startDate"
           name="startDate"
@@ -113,14 +116,14 @@ export function FixedExpenseForm({
             defaultChecked={defaults.isActive}
             className="h-4 w-4 rounded border-border"
           />
-          Gasto fijo activo
+          {t.money.fixedExpenses.activeLabel}
         </label>
       )}
 
       {state?.error && <p className="rounded-lg bg-danger-soft px-3 py-2 text-sm text-danger">{state.error}</p>}
 
       <Button type="submit" disabled={pending} className="mt-1 w-full">
-        {pending ? "Guardando…" : submitLabel}
+        {pending ? t.common.saving : (submitLabel ?? t.money.fixedExpenses.createSubmit)}
       </Button>
     </form>
   );

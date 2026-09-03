@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/db/prisma";
 import { getTodaysWorkoutDay, getWeekRange } from "./today";
+import { deriveDayType, DAY_TYPE_LABELS_ES } from "./day-type";
 
 export type FitnessSnapshot =
   | { hasProfile: false }
@@ -33,7 +34,9 @@ export async function getFitnessSnapshot(userId: string): Promise<FitnessSnapsho
 
   return {
     hasProfile: true,
-    todayLabel: todays?.day?.label ?? null,
+    todayLabel: todays?.day
+      ? DAY_TYPE_LABELS_ES[deriveDayType(todays.day.exercises.map((we) => we.exercise))]
+      : null,
     todayCompleted,
     weeklyCompleted,
     weeklyGoal: profile.daysPerWeek ?? 3,

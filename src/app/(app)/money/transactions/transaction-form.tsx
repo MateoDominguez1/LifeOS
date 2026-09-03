@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/cn";
 import { formatCurrency } from "@/lib/money/format";
 import { extractAmountFromOcrText } from "@/lib/money/receipts/extractAmountFromOcrText";
+import type { Dictionary } from "@/lib/i18n";
 import type { ActionState } from "./actions";
 
 const initialState: ActionState = undefined;
@@ -18,7 +19,8 @@ export function TransactionForm({
   defaults,
   transactionId,
   hasExistingReceipt = false,
-  submitLabel = "Guardar movimiento",
+  submitLabel,
+  t,
 }: {
   action: (state: ActionState, formData: FormData) => Promise<ActionState>;
   accounts: { id: string; name: string }[];
@@ -36,6 +38,7 @@ export function TransactionForm({
   transactionId?: string;
   hasExistingReceipt?: boolean;
   submitLabel?: string;
+  t: Dictionary;
 }) {
   const [state, formAction, pending] = useActionState(action, initialState);
   const [type, setType] = useState<"EXPENSE" | "INCOME">(defaults?.type ?? "EXPENSE");
@@ -85,38 +88,38 @@ export function TransactionForm({
   return (
     <form action={formAction} className="flex flex-col gap-4">
       <div className="flex gap-2">
-        {(["EXPENSE", "INCOME"] as const).map((t) => (
+        {(["EXPENSE", "INCOME"] as const).map((option) => (
           <button
-            key={t}
+            key={option}
             type="button"
-            onClick={() => setType(t)}
+            onClick={() => setType(option)}
             className={cn(
               "flex-1 rounded-xl border py-2.5 font-display text-sm font-medium transition-colors",
-              type === t
-                ? t === "EXPENSE"
+              type === option
+                ? option === "EXPENSE"
                   ? "border-fitness bg-fitness-soft text-fitness"
                   : "border-money bg-money-soft text-money"
                 : "border-border text-ink-soft"
             )}
           >
-            {t === "EXPENSE" ? "Gasto" : "Ingreso"}
+            {option === "EXPENSE" ? t.money.transactions.typeExpense : t.money.transactions.typeIncome}
           </button>
         ))}
         <input type="hidden" name="type" value={type} />
       </div>
 
       <div>
-        <Label htmlFor="description">Descripción</Label>
+        <Label htmlFor="description">{t.money.transactions.descriptionLabel}</Label>
         <Input
           id="description"
           name="description"
           required
-          placeholder="Ej. Supermercado"
+          placeholder={t.money.transactions.descriptionPlaceholder}
           defaultValue={defaults?.description}
         />
       </div>
       <div>
-        <Label htmlFor="amount">Monto</Label>
+        <Label htmlFor="amount">{t.money.common.amount}</Label>
         <Input
           ref={amountInputRef}
           id="amount"
@@ -129,10 +132,10 @@ export function TransactionForm({
         />
       </div>
       <div>
-        <Label htmlFor="accountId">Cuenta</Label>
+        <Label htmlFor="accountId">{t.money.common.account}</Label>
         <Select id="accountId" name="accountId" required defaultValue={defaults?.accountId ?? ""}>
           <option value="" disabled>
-            Elegí una cuenta
+            {t.money.common.chooseAccount}
           </option>
           {accounts.map((a) => (
             <option key={a.id} value={a.id}>
@@ -143,9 +146,9 @@ export function TransactionForm({
       </div>
       {type === "EXPENSE" && (
         <div>
-          <Label htmlFor="categoryId">Categoría</Label>
+          <Label htmlFor="categoryId">{t.money.common.category}</Label>
           <Select id="categoryId" name="categoryId" defaultValue={defaults?.categoryId ?? ""}>
-            <option value="">Sin categoría</option>
+            <option value="">{t.money.common.noCategory}</option>
             {categories.map((c) => (
               <option key={c.id} value={c.id}>
                 {c.icon} {c.name}
@@ -155,7 +158,7 @@ export function TransactionForm({
         </div>
       )}
       <div>
-        <Label htmlFor="date">Fecha</Label>
+        <Label htmlFor="date">{t.money.common.date}</Label>
         <Input
           id="date"
           name="date"
@@ -165,12 +168,12 @@ export function TransactionForm({
         />
       </div>
       <div>
-        <Label htmlFor="note">Nota (opcional)</Label>
+        <Label htmlFor="note">{t.money.common.noteOptional}</Label>
         <Input id="note" name="note" defaultValue={defaults?.note} />
       </div>
 
       <div>
-        <Label htmlFor="receipt">Foto del comprobante (opcional)</Label>
+        <Label htmlFor="receipt">{t.money.transactions.receiptLabel}</Label>
         <input
           id="receipt"
           name="receipt"
@@ -179,13 +182,15 @@ export function TransactionForm({
           onChange={handleReceiptChange}
           className="block w-full text-sm text-ink-soft file:mr-3 file:rounded-lg file:border-0 file:bg-accent file:px-3 file:py-1.5 file:text-xs file:font-medium file:text-white"
         />
-        {ocrStatus === "processing" && <p className="mt-1 text-xs text-ink-faint">Leyendo el comprobante…</p>}
+        {ocrStatus === "processing" && <p className="mt-1 text-xs text-ink-faint">{t.money.transactions.receiptReading}</p>}
         {ocrStatus === "detected" && detectedAmount !== null && (
-          <p className="mt-1 text-xs text-money">Detecté un total de {formatCurrency(detectedAmount)}</p>
+          <p className="mt-1 text-xs text-money">
+            {t.money.transactions.receiptDetectedPrefix} {formatCurrency(detectedAmount)}
+          </p>
         )}
         {receiptPreview ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={receiptPreview} alt="Vista previa del comprobante" className="mt-2 h-32 w-full rounded-xl border border-border object-cover" />
+          <img src={receiptPreview} alt={t.money.transactions.receiptPreviewAlt} className="mt-2 h-32 w-full rounded-xl border border-border object-cover" />
         ) : (
           hasExistingReceipt &&
           transactionId &&
@@ -193,7 +198,7 @@ export function TransactionForm({
             // eslint-disable-next-line @next/next/no-img-element
             <img
               src={`/api/receipts/${transactionId}`}
-              alt="Comprobante actual"
+              alt={t.money.transactions.receiptCurrentAlt}
               className="mt-2 h-32 w-full rounded-xl border border-border object-cover"
             />
           )
@@ -209,14 +214,14 @@ export function TransactionForm({
             onChange={(event) => setRemoveReceipt(event.target.checked)}
             className="h-4 w-4 rounded border-border"
           />
-          Quitar foto actual
+          {t.money.transactions.removeCurrentReceipt}
         </label>
       )}
 
       {state?.error && <p className="rounded-lg bg-danger-soft px-3 py-2 text-sm text-danger">{state.error}</p>}
 
       <Button type="submit" disabled={pending} className="mt-1 w-full">
-        {pending ? "Guardando…" : submitLabel}
+        {pending ? t.common.saving : (submitLabel ?? t.money.transactions.createSubmit)}
       </Button>
     </form>
   );

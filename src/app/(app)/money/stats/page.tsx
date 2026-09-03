@@ -8,11 +8,13 @@ import { groupExpensesByCategory } from "@/lib/money/groupExpensesByCategory";
 import { getRecentBudgetPeriods } from "@/lib/money/getRecentBudgetPeriods";
 import { Decimal, toDecimal } from "@/lib/money/decimal";
 import { getPrimaryIncomeAndPeriod } from "@/lib/money/period";
+import { getT } from "@/lib/i18n";
 
 const PERIODS_TO_COMPARE = 6;
 
 export default async function StatsPage() {
   const userId = await requireUserId();
+  const { t } = await getT();
   const today = new Date();
   const { primaryIncome } = await getPrimaryIncomeAndPeriod(userId, today);
   const paydayDay = primaryIncome?.dayOfMonth ?? 1;
@@ -42,7 +44,7 @@ export default async function StatsPage() {
       const category = categoryById.get(entry.categoryId);
       return {
         categoryId: entry.categoryId,
-        name: category?.name ?? "Sin categoría",
+        name: category?.name ?? t.money.common.noCategory,
         icon: category?.icon ?? "📦",
         color: category?.color ?? "#94a3b8",
         amount: entry.total.toNumber(),
@@ -65,21 +67,21 @@ export default async function StatsPage() {
       : thisPeriodTotal;
 
   const comparisonData = [
-    { label: "Este ciclo", amount: thisPeriodTotal.toNumber() },
-    { label: "Anterior", amount: lastPeriodTotal.toNumber() },
-    { label: "Promedio", amount: average.toNumber() },
+    { label: t.money.stats.thisCycle, amount: thisPeriodTotal.toNumber() },
+    { label: t.money.stats.previous, amount: lastPeriodTotal.toNumber() },
+    { label: t.money.stats.average, amount: average.toNumber() },
   ];
 
   return (
     <div>
       <MoneyNav />
       <div className="flex flex-col gap-4">
-        <h1 className="font-display text-xl font-bold">Estadísticas</h1>
+        <h1 className="font-display text-xl font-bold">{t.money.stats.title}</h1>
 
         <Card>
-          <CardLabel>Gastos por categoría</CardLabel>
+          <CardLabel>{t.money.stats.byCategoryTitle}</CardLabel>
           {categoryTotals.length === 0 ? (
-            <p className="mt-4 text-sm text-ink-soft">Todavía no hay gastos categorizados este ciclo.</p>
+            <p className="mt-4 text-sm text-ink-soft">{t.money.stats.noCategorizedExpenses}</p>
           ) : (
             <div className="mt-4">
               <CategoryBreakdownChart data={categoryTotals} />
@@ -88,7 +90,7 @@ export default async function StatsPage() {
         </Card>
 
         <Card>
-          <CardLabel>Comparación de gasto total</CardLabel>
+          <CardLabel>{t.money.stats.totalComparisonTitle}</CardLabel>
           <div className="mt-2">
             <MonthComparisonChart data={comparisonData} />
           </div>

@@ -5,6 +5,7 @@ import { requireUserId } from "@/lib/auth/session";
 import { MoneyNav } from "@/components/money/money-nav";
 import { Card } from "@/components/ui/card";
 import { formatCurrency } from "@/lib/money/format";
+import { getT, INTL_LOCALES } from "@/lib/i18n";
 import { deleteTransactionAction } from "./actions";
 import { deleteTransferAction } from "../transfers/actions";
 
@@ -14,6 +15,7 @@ type FeedItem =
 
 export default async function TransactionsPage() {
   const userId = await requireUserId();
+  const { locale, t } = await getT();
   const [transactions, transfers] = await Promise.all([
     prisma.transaction.findMany({
       where: { userId },
@@ -36,7 +38,7 @@ export default async function TransactionsPage() {
       date: tx.date,
       icon: tx.category?.icon ?? (tx.type === "INCOME" ? "💰" : "📦"),
       title: tx.description,
-      subtitle: `${tx.account.name} · ${tx.date.toLocaleDateString("es-AR", { day: "numeric", month: "short" })}`,
+      subtitle: `${tx.account.name} · ${tx.date.toLocaleDateString(INTL_LOCALES[locale], { day: "numeric", month: "short" })}`,
       amountLabel: `${tx.type === "INCOME" ? "+" : "-"}${formatCurrency(tx.amount.toNumber())}`,
       amountClass: tx.type === "INCOME" ? "text-money" : "text-ink",
     })),
@@ -45,7 +47,7 @@ export default async function TransactionsPage() {
       id: tr.id,
       date: tr.date,
       title: `${tr.fromAccount.name} → ${tr.toAccount.name}`,
-      subtitle: tr.date.toLocaleDateString("es-AR", { day: "numeric", month: "short" }),
+      subtitle: tr.date.toLocaleDateString(INTL_LOCALES[locale], { day: "numeric", month: "short" }),
       amountLabel: formatCurrency(tr.amount.toNumber()),
     })),
   ].sort((a, b) => b.date.getTime() - a.date.getTime());
@@ -54,25 +56,25 @@ export default async function TransactionsPage() {
     <div>
       <MoneyNav />
       <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
-        <h1 className="font-display text-xl font-bold">Movimientos</h1>
+        <h1 className="font-display text-xl font-bold">{t.money.transactions.title}</h1>
         <div className="flex flex-wrap gap-2">
           <Link
             href="/money/transfers/new"
             className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-border px-3 font-display text-sm font-medium text-ink-soft hover:border-accent/50 hover:text-ink"
           >
-            <ArrowLeftRight size={15} /> Transferir
+            <ArrowLeftRight size={15} /> {t.money.common.transfer}
           </Link>
           <Link
             href="/money/transactions/new"
             className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-accent px-3 font-display text-sm font-medium text-white hover:opacity-90"
           >
-            <Plus size={15} /> Nuevo movimiento
+            <Plus size={15} /> {t.money.transactions.newTransaction}
           </Link>
         </div>
       </div>
 
       {feed.length === 0 ? (
-        <Card className="py-10 text-center text-sm text-ink-soft">Todavía no registraste movimientos.</Card>
+        <Card className="py-10 text-center text-sm text-ink-soft">{t.money.transactions.empty}</Card>
       ) : (
         <Card className="p-0">
           <div className="flex flex-col divide-y divide-border-soft">
@@ -96,14 +98,14 @@ export default async function TransactionsPage() {
                       href={`/money/transactions/${item.id}/edit`}
                       className="rounded-lg px-2 py-1 text-xs font-medium text-ink-faint hover:bg-surface-raised hover:text-ink"
                     >
-                      Editar
+                      {t.common.edit}
                     </Link>
                     <form action={deleteTransactionAction.bind(null, item.id)}>
                       <button
                         type="submit"
                         className="rounded-lg px-2 py-1 text-xs font-medium text-ink-faint hover:bg-danger-soft hover:text-danger"
                       >
-                        Eliminar
+                        {t.common.delete}
                       </button>
                     </form>
                   </div>
@@ -126,7 +128,7 @@ export default async function TransactionsPage() {
                         type="submit"
                         className="rounded-lg px-2 py-1 text-xs font-medium text-ink-faint hover:bg-danger-soft hover:text-danger"
                       >
-                        Eliminar
+                        {t.common.delete}
                       </button>
                     </form>
                   </div>

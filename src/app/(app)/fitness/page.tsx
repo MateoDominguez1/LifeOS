@@ -8,6 +8,7 @@ import { ProgressBar } from "@/components/ui/progress-bar";
 import { FitnessNav } from "@/components/fitness/fitness-nav";
 import { getTodaysWorkoutDay, getWeekRange } from "@/lib/fitness/today";
 import { computeWorkoutStreak } from "@/lib/fitness/progress/streak";
+import { deriveDayType, DAY_TYPE_LABELS_ES } from "@/lib/fitness/day-type";
 import { resolveRecommendation } from "./dashboard-actions";
 import { startWorkoutSession } from "./workout/actions";
 import { DayMarker } from "./calendar/DayMarker";
@@ -74,7 +75,9 @@ export default async function FitnessPage() {
           <CardLabel>Entrenamiento de hoy</CardLabel>
           {todays?.day ? (
             <div className="mt-2">
-              <div className="text-lg font-semibold text-ink">{todays.day.label}</div>
+              <div className="text-lg font-semibold text-ink">
+                Día {todays.day.order + 1} · {DAY_TYPE_LABELS_ES[deriveDayType(todays.day.exercises.map((we) => we.exercise))]}
+              </div>
               <p className="text-sm text-ink-soft">
                 {todays.day.exercises.length} ejercicios · ~{profile.sessionDurationMin ?? 60} min
               </p>

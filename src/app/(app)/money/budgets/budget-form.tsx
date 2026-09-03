@@ -4,6 +4,7 @@ import { useActionState } from "react";
 import { Select } from "@/components/ui/select";
 import { Input, Label } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import type { Dictionary } from "@/lib/i18n";
 import type { ActionState } from "./actions";
 
 const initialState: ActionState = undefined;
@@ -13,7 +14,8 @@ export function BudgetForm({
   categories,
   accounts,
   defaults,
-  submitLabel = "Crear presupuesto",
+  submitLabel,
+  t,
 }: {
   action: (state: ActionState, formData: FormData) => Promise<ActionState>;
   categories: { id: string; name: string; icon: string }[];
@@ -28,6 +30,7 @@ export function BudgetForm({
     isActive: boolean;
   };
   submitLabel?: string;
+  t: Dictionary;
 }) {
   const [state, formAction, pending] = useActionState(action, initialState);
 
@@ -35,21 +38,21 @@ export function BudgetForm({
     <form action={formAction} className="flex flex-col gap-4">
       {!defaults && <input type="hidden" name="isActive" value="on" />}
       <div>
-        <Label htmlFor="name">Nombre</Label>
-        <Input id="name" name="name" required placeholder="Ej. Supermercado" defaultValue={defaults?.name} />
+        <Label htmlFor="name">{t.money.common.name}</Label>
+        <Input id="name" name="name" required placeholder={t.money.budgets.namePlaceholder} defaultValue={defaults?.name} />
       </div>
       <div>
-        <Label htmlFor="type">Tipo</Label>
+        <Label htmlFor="type">{t.money.common.typeLabel}</Label>
         <Select id="type" name="type" defaultValue={defaults?.type ?? "CUSTOM"}>
-          <option value="GROCERY">Supermercado</option>
-          <option value="CUSTOM">Personalizado</option>
+          <option value="GROCERY">{t.money.budgets.typeGrocery}</option>
+          <option value="CUSTOM">{t.money.budgets.typeCustom}</option>
         </Select>
       </div>
       <div>
-        <Label htmlFor="categoryId">Categoría</Label>
+        <Label htmlFor="categoryId">{t.money.common.category}</Label>
         <Select id="categoryId" name="categoryId" required defaultValue={defaults?.categoryId ?? ""}>
           <option value="" disabled>
-            Elegí una categoría
+            {t.money.common.chooseCategory}
           </option>
           {categories.map((c) => (
             <option key={c.id} value={c.id}>
@@ -59,9 +62,9 @@ export function BudgetForm({
         </Select>
       </div>
       <div>
-        <Label htmlFor="accountId">Cuenta dedicada (opcional)</Label>
+        <Label htmlFor="accountId">{t.money.budgets.dedicatedAccountLabel}</Label>
         <Select id="accountId" name="accountId" defaultValue={defaults?.accountId ?? ""}>
-          <option value="">Cualquier cuenta</option>
+          <option value="">{t.money.common.anyAccount}</option>
           {accounts.map((a) => (
             <option key={a.id} value={a.id}>
               {a.name}
@@ -70,7 +73,7 @@ export function BudgetForm({
         </Select>
       </div>
       <div>
-        <Label htmlFor="monthlyAmount">Monto mensual</Label>
+        <Label htmlFor="monthlyAmount">{t.money.budgets.monthlyAmountLabel}</Label>
         <Input
           id="monthlyAmount"
           name="monthlyAmount"
@@ -82,7 +85,7 @@ export function BudgetForm({
         />
       </div>
       <div>
-        <Label htmlFor="weeklyAmount">Límite semanal (opcional)</Label>
+        <Label htmlFor="weeklyAmount">{t.money.budgets.weeklyLimitLabel}</Label>
         <Input
           id="weeklyAmount"
           name="weeklyAmount"
@@ -99,14 +102,14 @@ export function BudgetForm({
             defaultChecked={defaults.isActive}
             className="h-4 w-4 rounded border-border"
           />
-          Presupuesto activo
+          {t.money.budgets.activeLabel}
         </label>
       )}
 
       {state?.error && <p className="rounded-lg bg-danger-soft px-3 py-2 text-sm text-danger">{state.error}</p>}
 
       <Button type="submit" disabled={pending} className="mt-1 w-full">
-        {pending ? "Guardando…" : submitLabel}
+        {pending ? t.common.saving : (submitLabel ?? t.money.budgets.createSubmit)}
       </Button>
     </form>
   );

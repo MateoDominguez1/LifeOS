@@ -4,6 +4,7 @@ import { useActionState } from "react";
 import { Select } from "@/components/ui/select";
 import { Input, Label } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import type { Dictionary } from "@/lib/i18n";
 import type { ActionState } from "./actions";
 
 const initialState: ActionState = undefined;
@@ -11,7 +12,8 @@ const initialState: ActionState = undefined;
 export function ImportantDateForm({
   action,
   defaults,
-  submitLabel = "Agregar fecha",
+  submitLabel,
+  t,
 }: {
   action: (state: ActionState, formData: FormData) => Promise<ActionState>;
   defaults?: {
@@ -24,6 +26,7 @@ export function ImportantDateForm({
     isActive: boolean;
   };
   submitLabel?: string;
+  t: Dictionary;
 }) {
   const [state, formAction, pending] = useActionState(action, initialState);
 
@@ -31,27 +34,27 @@ export function ImportantDateForm({
     <form action={formAction} className="flex flex-col gap-4">
       {!defaults && <input type="hidden" name="isActive" value="on" />}
       <div>
-        <Label htmlFor="personName">Nombre</Label>
-        <Input id="personName" name="personName" required placeholder="Ej. Mamá" defaultValue={defaults?.personName} />
+        <Label htmlFor="personName">{t.money.common.name}</Label>
+        <Input id="personName" name="personName" required placeholder={t.money.importantDates.personNamePlaceholder} defaultValue={defaults?.personName} />
       </div>
       <div>
-        <Label htmlFor="relationship">Relación (opcional)</Label>
-        <Input id="relationship" name="relationship" placeholder="Ej. Madre" defaultValue={defaults?.relationship} />
+        <Label htmlFor="relationship">{t.money.importantDates.relationshipLabel}</Label>
+        <Input id="relationship" name="relationship" placeholder={t.money.importantDates.relationshipPlaceholder} defaultValue={defaults?.relationship} />
       </div>
       <div>
-        <Label htmlFor="type">Tipo</Label>
+        <Label htmlFor="type">{t.money.common.typeLabel}</Label>
         <Select id="type" name="type" defaultValue={defaults?.type ?? "BIRTHDAY"}>
-          <option value="BIRTHDAY">Cumpleaños</option>
-          <option value="ANNIVERSARY">Aniversario</option>
-          <option value="OTHER">Otro</option>
+          <option value="BIRTHDAY">{t.money.importantDates.typeBirthday}</option>
+          <option value="ANNIVERSARY">{t.money.importantDates.typeAnniversary}</option>
+          <option value="OTHER">{t.money.importantDates.typeOther}</option>
         </Select>
       </div>
       <div>
-        <Label htmlFor="date">Fecha</Label>
+        <Label htmlFor="date">{t.money.common.date}</Label>
         <Input id="date" name="date" type="date" required defaultValue={defaults?.date} />
       </div>
       <div>
-        <Label htmlFor="reminderDaysBefore">Avisarme con cuántos días de anticipación</Label>
+        <Label htmlFor="reminderDaysBefore">{t.money.importantDates.reminderLabel}</Label>
         <Input
           id="reminderDaysBefore"
           name="reminderDaysBefore"
@@ -62,7 +65,7 @@ export function ImportantDateForm({
         />
       </div>
       <div>
-        <Label htmlFor="note">Nota (opcional)</Label>
+        <Label htmlFor="note">{t.money.common.noteOptional}</Label>
         <Input id="note" name="note" defaultValue={defaults?.note} />
       </div>
       {defaults && (
@@ -73,14 +76,14 @@ export function ImportantDateForm({
             defaultChecked={defaults.isActive}
             className="h-4 w-4 rounded border-border"
           />
-          Activa
+          {t.money.common.active}
         </label>
       )}
 
       {state?.error && <p className="rounded-lg bg-danger-soft px-3 py-2 text-sm text-danger">{state.error}</p>}
 
       <Button type="submit" disabled={pending} className="mt-1 w-full">
-        {pending ? "Guardando…" : submitLabel}
+        {pending ? t.common.saving : (submitLabel ?? t.money.importantDates.createSubmit)}
       </Button>
     </form>
   );

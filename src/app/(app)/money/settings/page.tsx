@@ -4,11 +4,13 @@ import { MoneyNav } from "@/components/money/money-nav";
 import { Card, CardLabel } from "@/components/ui/card";
 import { PushNotificationsCard } from "@/components/money/push-notifications-card";
 import { ApiTokensCard } from "@/components/money/api-tokens-card";
+import { getT } from "@/lib/i18n";
 import { AddCategoryForm } from "./add-category-form";
 import { deleteCategoryAction } from "./actions";
 
 export default async function MoneySettingsPage() {
   const userId = await requireUserId();
+  const { t } = await getT();
 
   const [categories, apiTokens] = await Promise.all([
     prisma.category.findMany({
@@ -26,7 +28,7 @@ export default async function MoneySettingsPage() {
     <div>
       <MoneyNav />
       <div className="flex flex-col gap-4">
-        <h1 className="font-display text-xl font-bold">Ajustes de Money</h1>
+        <h1 className="font-display text-xl font-bold">{t.money.settings.title}</h1>
 
         <PushNotificationsCard />
 
@@ -39,8 +41,8 @@ export default async function MoneySettingsPage() {
         />
 
         <Card>
-          <CardLabel>Categorías</CardLabel>
-          <p className="mt-1 text-sm text-ink-soft">Las que uses para clasificar gastos y presupuestos.</p>
+          <CardLabel>{t.money.settings.categoriesTitle}</CardLabel>
+          <p className="mt-1 text-sm text-ink-soft">{t.money.settings.categoriesDescription}</p>
 
           <div className="mt-4 flex flex-wrap gap-2">
             {categories.map((category) => (
@@ -56,10 +58,10 @@ export default async function MoneySettingsPage() {
                 </span>
                 {category.name}
                 {category.isDefault ? (
-                  <span className="rounded bg-border-soft px-1.5 py-0.5 text-xs text-ink-faint">Sistema</span>
+                  <span className="rounded bg-border-soft px-1.5 py-0.5 text-xs text-ink-faint">{t.money.settings.systemBadge}</span>
                 ) : (
                   <form action={deleteCategoryAction.bind(null, category.id)}>
-                    <button type="submit" className="text-ink-faint hover:text-danger" aria-label="Eliminar">
+                    <button type="submit" className="text-ink-faint hover:text-danger" aria-label={t.common.delete}>
                       ×
                     </button>
                   </form>
@@ -69,7 +71,7 @@ export default async function MoneySettingsPage() {
           </div>
 
           <div className="mt-4 border-t border-border-soft pt-4">
-            <AddCategoryForm />
+            <AddCategoryForm t={t} />
           </div>
         </Card>
       </div>

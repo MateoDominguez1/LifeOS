@@ -4,12 +4,13 @@ import { notFound } from "next/navigation";
 import { prisma } from "@/lib/db/prisma";
 import { requireUserId } from "@/lib/auth/session";
 import { Card } from "@/components/ui/card";
+import { getT } from "@/lib/i18n";
 import { TransactionForm } from "../../transaction-form";
 import { updateTransactionAction } from "../../actions";
 
 export default async function EditTransactionPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const userId = await requireUserId();
+  const [userId, { t }] = await Promise.all([requireUserId(), getT()]);
 
   const [transaction, accounts, categories] = await Promise.all([
     prisma.transaction.findFirst({ where: { id, userId } }),
@@ -29,10 +30,10 @@ export default async function EditTransactionPage({ params }: { params: Promise<
   return (
     <div className="mx-auto max-w-md">
       <Link href="/money/transactions" className="mb-4 inline-flex items-center gap-1 text-sm text-ink-soft hover:text-ink">
-        <ChevronLeft size={16} /> Movimientos
+        <ChevronLeft size={16} /> {t.money.transactions.title}
       </Link>
       <Card className="p-6">
-        <h1 className="mb-4 font-display text-lg font-bold">Editar movimiento</h1>
+        <h1 className="mb-4 font-display text-lg font-bold">{t.money.transactions.editTransaction}</h1>
         <TransactionForm
           action={updateTransactionAction.bind(null, transaction.id)}
           accounts={accounts}
@@ -48,7 +49,8 @@ export default async function EditTransactionPage({ params }: { params: Promise<
             date: transaction.date.toISOString().slice(0, 10),
             note: transaction.note ?? "",
           }}
-          submitLabel="Guardar cambios"
+          submitLabel={t.money.common.saveChanges}
+          t={t}
         />
       </Card>
     </div>

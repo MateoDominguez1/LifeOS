@@ -4,6 +4,7 @@ import { requireUserId } from "@/lib/auth/session";
 import { Card } from "@/components/ui/card";
 import { FitnessNav } from "@/components/fitness/fitness-nav";
 import { getActiveProgram, getWeekRange } from "@/lib/fitness/today";
+import { deriveDayType, DAY_TYPE_LABELS_ES } from "@/lib/fitness/day-type";
 import { DayMarker } from "./DayMarker";
 
 const DAY_LABELS = ["Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"];
@@ -86,7 +87,11 @@ export default async function CalendarPage({ searchParams }: { searchParams: Pro
               <div className="flex items-center justify-between gap-2">
                 <div className="min-w-0">
                   <div className="text-sm font-medium text-ink">{day.label}</div>
-                  <div className="text-xs text-ink-faint">{day.scheduledDay ? day.scheduledDay.label : "Descanso"}</div>
+                  <div className="text-xs text-ink-faint">
+                    {day.scheduledDay
+                      ? `Día ${day.scheduledDay.order + 1} · ${DAY_TYPE_LABELS_ES[deriveDayType(day.scheduledDay.exercises.map((we) => we.exercise))]}`
+                      : "Descanso"}
+                  </div>
                 </div>
                 <div className="flex shrink-0 items-center gap-2">
                   <span className="text-sm text-ink-soft">

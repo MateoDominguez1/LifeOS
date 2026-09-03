@@ -2,11 +2,12 @@
 
 import { useActionState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
+import type { Dictionary } from "@/lib/i18n";
 import { addItemsFromTextAction, type ActionState } from "./actions";
 
 const initialState: ActionState = undefined;
 
-export function AddItemsForm() {
+export function AddItemsForm({ t }: { t: Dictionary }) {
   const [state, formAction, pending] = useActionState(addItemsFromTextAction, initialState);
   const ref = useRef<HTMLFormElement>(null);
 
@@ -17,18 +18,18 @@ export function AddItemsForm() {
   return (
     <form ref={ref} action={formAction} className="flex flex-col gap-3">
       <label className="text-sm font-medium text-ink-soft">
-        Pegá la lista (una por línea, formato: Producto - precio)
+        {t.money.shoppingList.pasteHint}
         <textarea
           name="text"
           required
           rows={4}
-          placeholder={"Leche - 1.20\nPan - 2.50"}
+          placeholder={t.money.shoppingList.placeholderExample}
           className="mt-1.5 w-full rounded-xl border border-border bg-surface p-3 text-sm text-ink outline-none focus:border-accent"
         />
       </label>
       {state?.error && <p className="rounded-lg bg-danger-soft px-3 py-2 text-sm text-danger">{state.error}</p>}
       <Button type="submit" disabled={pending} className="self-start">
-        {pending ? "Agregando…" : "Agregar a la lista"}
+        {pending ? t.money.common.adding : t.money.shoppingList.addToListSubmit}
       </Button>
     </form>
   );

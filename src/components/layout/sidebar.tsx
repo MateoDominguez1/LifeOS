@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/cn";
@@ -20,9 +21,7 @@ export function Sidebar({ t }: { t: Dictionary["nav"] }) {
   return (
     <aside className="sticky top-0 hidden h-screen w-60 shrink-0 flex-col border-r border-border-soft px-4 py-6 md:flex">
       <div className="mb-8 flex items-center gap-2 px-2">
-        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-accent font-display text-sm font-bold text-white">
-          L
-        </div>
+        <Image src="/logo-mark.png" alt="LifeOS" width={32} height={32} className="h-8 w-8" priority />
         <span className="font-display text-base font-bold tracking-tight">
           LifeOS
         </span>

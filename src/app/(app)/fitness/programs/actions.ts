@@ -76,6 +76,60 @@ export async function addExercise(workoutDayId: string, exerciseId: string) {
   revalidatePath("/fitness/programs");
 }
 
+async function assertOwnsProgram(userId: string, programId: string) {
+  const program = await prisma.workoutProgram.findUnique({ where: { id: programId } });
+  if (!program || program.userId !== userId) throw new Error("Not authorized");
+  return program;
+}
+
+export async function addWorkoutDay(programId: string, dayOfWeek: number) {
+  const userId = await requireUserId();
+  await assertOwnsProgram(userId, programId);
+
+  const existing = await prisma.workoutDay.findMany({ where: { programId } });
+  if (existing.some((d) => d.dayOfWeek === dayOfWeek)) {
+    throw new Error("Ya hay un día de entrenamiento asignado a ese día de la semana.");
+  }
+
+  const maxOrder = existing.reduce((max, d) => Math.max(max, d.order), -1);
+
+  await prisma.workoutDay.create({
+    data: { programId, dayOfWeek, order: maxOrder + 1, label: "" },
+  });
+
+  revalidatePath("/fitness/programs");
+}
+
+export async function removeWorkoutDay(workoutDayId: string) {
+  const userId = await requireUserId();
+  const day = await assertOwnsDay(userId, workoutDayId);
+
+  const siblingCount = await prisma.workoutDay.count({ where: { programId: day.programId } });
+  if (siblingCount <= 1) {
+    throw new Error("No podés borrar el único día de entrenamiento del programa.");
+  }
+
+  const loggedSets = await prisma.workoutSet.count({ where: { workoutExercise: { workoutDayId } } });
+  if (loggedSets > 0) {
+    throw new Error("Este día tiene entrenamientos registrados — no se puede eliminar. Podés quitar sus ejercicios en su lugar.");
+  }
+
+  await prisma.workoutDay.delete({ where: { id: workoutDayId } });
+
+  const remaining = await prisma.workoutDay.findMany({
+    where: { programId: day.programId },
+    orderBy: { order: "asc" },
+  });
+  await prisma.$transaction(
+    remaining.map((d, i) => prisma.workoutDay.update({ where: { id: d.id }, data: { order: i } }))
+  );
+
+  revalidatePath("/fitness/programs");
+  revalidatePath("/fitness/calendar");
+  revalidatePath("/fitness");
+  revalidatePath("/calendar");
+}
+
 export async function moveExercise(workoutDayId: string, workoutExerciseId: string, direction: "up" | "down") {
   const userId = await requireUserId();
   await assertOwnsDay(userId, workoutDayId);

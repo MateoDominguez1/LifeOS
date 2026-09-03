@@ -3,11 +3,13 @@ import { prisma } from "@/lib/db/prisma";
 import { requireUserId } from "@/lib/auth/session";
 import { Card } from "@/components/ui/card";
 import { formatCurrency } from "@/lib/money/format";
+import { getT } from "@/lib/i18n";
 import { StepIndicator } from "../step-indicator";
 import { AddFixedExpenseForm } from "./add-fixed-expense-form";
 
 export default async function OnboardingFixedExpensesPage() {
   const userId = await requireUserId();
+  const { t } = await getT();
   const [accounts, fixedExpenses] = await Promise.all([
     prisma.account.findMany({ where: { userId }, select: { id: true, name: true }, orderBy: { createdAt: "asc" } }),
     prisma.fixedExpense.findMany({ where: { userId }, orderBy: { dueDay: "asc" } }),
@@ -15,11 +17,9 @@ export default async function OnboardingFixedExpensesPage() {
 
   return (
     <Card className="p-6">
-      <StepIndicator current={2} />
-      <h1 className="font-display text-lg font-bold">Tus gastos fijos</h1>
-      <p className="mt-1 text-sm text-ink-soft">
-        Alquiler, suscripciones, cuotas — lo que se repite todos los meses. Agregá los que quieras, o saltealo.
-      </p>
+      <StepIndicator current={2} t={t} />
+      <h1 className="font-display text-lg font-bold">{t.money.onboarding.fixedExpensesTitle}</h1>
+      <p className="mt-1 text-sm text-ink-soft">{t.money.onboarding.fixedExpensesSubtitle}</p>
 
       {fixedExpenses.length > 0 && (
         <div className="mt-4 flex flex-col divide-y divide-border-soft rounded-xl border border-border-soft">
@@ -33,14 +33,14 @@ export default async function OnboardingFixedExpensesPage() {
       )}
 
       <div className="mt-4">
-        <AddFixedExpenseForm accounts={accounts} />
+        <AddFixedExpenseForm accounts={accounts} t={t} />
       </div>
 
       <Link
         href="/money/onboarding/budget"
         className="mt-5 inline-flex h-11 w-full items-center justify-center rounded-xl bg-accent font-display text-sm font-medium text-white hover:opacity-90"
       >
-        Continuar
+        {t.money.onboarding.continueSubmit}
       </Link>
     </Card>
   );

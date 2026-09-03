@@ -21,6 +21,7 @@ import { groupExpensesByCategory } from "@/lib/money/groupExpensesByCategory";
 import { getPrimaryIncomeAndPeriod } from "@/lib/money/period";
 import { getUpcomingImportantDates } from "@/lib/money/getUpcomingImportantDates";
 import { AssistantPanel } from "@/components/money/assistant-panel";
+import { getT, INTL_LOCALES, type Dictionary } from "@/lib/i18n";
 
 const PROJECTION_HORIZON_DAYS = 30;
 
@@ -32,6 +33,7 @@ const IMPORTANT_DATE_ICON: Record<string, string> = {
 
 export default async function MoneyDashboardPage() {
   const userId = await requireUserId();
+  const { locale, t } = await getT();
   const today = new Date();
 
   const [accountCount, { primaryIncome, period }] = await Promise.all([
@@ -43,7 +45,7 @@ export default async function MoneyDashboardPage() {
     return (
       <div>
         <MoneyNav />
-        <EmptyState />
+        <EmptyState t={t} />
       </div>
     );
   }
@@ -199,7 +201,7 @@ export default async function MoneyDashboardPage() {
   const previousTotals = groupExpensesByCategory(previousCategoryExpenses);
   const categoryComparisons = currentTotals.map((entry) => ({
     categoryId: entry.categoryId,
-    name: categoryById.get(entry.categoryId)?.name ?? "Sin categoría",
+    name: categoryById.get(entry.categoryId)?.name ?? t.money.common.noCategory,
     current: entry.total,
     previous: previousTotals.find((p) => p.categoryId === entry.categoryId)?.total ?? new Decimal(0),
   }));
@@ -213,7 +215,7 @@ export default async function MoneyDashboardPage() {
       const category = expense?.categoryId ? categoryById.get(expense.categoryId) : undefined;
       return {
         id: `${item.fixedExpenseId}-${item.dueDate.toISOString()}`,
-        name: expense?.name ?? "Gasto fijo",
+        name: expense?.name ?? t.money.common.fixedExpenseFallback,
         icon: category?.icon ?? "🔁",
         amount: item.amount.toNumber(),
         dueDate: item.dueDate,
@@ -276,13 +278,14 @@ export default async function MoneyDashboardPage() {
       <MoneyNav />
       <div className="flex flex-col gap-4">
         <Card domain="money" className="flex flex-col gap-1">
-          <CardLabel>Disponible para gastar</CardLabel>
+          <CardLabel>{t.money.dashboard.availableToSpend}</CardLabel>
           <div className="font-mono text-3xl font-semibold tabular-nums text-ink">
             {formatCurrency(available.toNumber())}
           </div>
           <p className="text-sm text-ink-soft">
-            {formatCurrency(dailyLimit.toNumber())}/día · quedan {daysRemaining}{" "}
-            {daysRemaining === 1 ? "día" : "días"} de este ciclo
+            {formatCurrency(dailyLimit.toNumber())}
+            {t.dashboard.moneyPerDay} · {t.money.dashboard.cyclePrefix} {daysRemaining}{" "}
+            {daysRemaining === 1 ? t.money.common.daySingular : t.money.common.dayPlural} {t.money.dashboard.cycleSuffix}
           </p>
         </Card>
 
@@ -295,10 +298,10 @@ export default async function MoneyDashboardPage() {
         )}
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-          <Stat label="Saldo total" value={formatCurrency(totalBalance.toNumber())} />
-          <Stat label="Reservado (gastos fijos)" value={formatCurrency(pendingFixed.total.toNumber())} />
+          <Stat label={t.money.dashboard.totalBalance} value={formatCurrency(totalBalance.toNumber())} />
+          <Stat label={t.money.dashboard.reservedFixed} value={formatCurrency(pendingFixed.total.toNumber())} />
           <Stat
-            label="Presupuestos restantes"
+            label={t.money.dashboard.budgetsRemaining}
             value={formatCurrency(
               (groceryBudget ? Decimal.max(groceryBudget.progress.monthly.remaining, 0) : new Decimal(0))
                 .plus(otherBudgetsRemaining)
@@ -309,23 +312,25 @@ export default async function MoneyDashboardPage() {
 
         <Card>
           <div className="flex items-center justify-between">
-            <CardLabel>Esta semana</CardLabel>
-            <span className="text-xs text-ink-faint">reparto semanal del disponible</span>
+            <CardLabel>{t.money.dashboard.thisWeek}</CardLabel>
+            <span className="text-xs text-ink-faint">{t.money.dashboard.weeklyDistributionHint}</span>
           </div>
           <div className="mt-1 font-mono text-xl font-semibold tabular-nums text-ink">
             {formatCurrency(weeklyAvailable.remaining.toNumber())}
           </div>
           <p className="text-sm text-ink-soft">
-            de {formatCurrency(weeklyAvailable.weeklyBudget.toNumber())} · quedan {weeklyAvailable.daysLeftInWeek}{" "}
-            {weeklyAvailable.daysLeftInWeek === 1 ? "día" : "días"} de esta semana
+            {t.money.common.of} {formatCurrency(weeklyAvailable.weeklyBudget.toNumber())} · {t.money.dashboard.cyclePrefix}{" "}
+            {weeklyAvailable.daysLeftInWeek}{" "}
+            {weeklyAvailable.daysLeftInWeek === 1 ? t.money.common.daySingular : t.money.common.dayPlural} {t.money.dashboard.weekSuffix}
           </p>
           {!weeklyAvailable.carryover.isZero() && (
             <p className="mt-1.5 text-xs text-ink-faint">
-              Base de {formatCurrency(weeklyAvailable.baseWeeklyAmount.toNumber())}/semana{" "}
+              {t.money.dashboard.baseWeeklyPrefix} {formatCurrency(weeklyAvailable.baseWeeklyAmount.toNumber())}
+              {t.money.dashboard.perWeekSuffix}{" "}
               {weeklyAvailable.carryover.isPositive() ? (
-                <>+ {formatCurrency(weeklyAvailable.carryover.toNumber())} que sobró de semanas anteriores de este ciclo.</>
+                <>+ {formatCurrency(weeklyAvailable.carryover.toNumber())} {t.money.dashboard.carryoverPositive}</>
               ) : (
-                <>− {formatCurrency(weeklyAvailable.carryover.abs().toNumber())} que te pasaste en semanas anteriores de este ciclo.</>
+                <>− {formatCurrency(weeklyAvailable.carryover.abs().toNumber())} {t.money.dashboard.carryoverNegative}</>
               )}
             </p>
           )}
@@ -333,7 +338,7 @@ export default async function MoneyDashboardPage() {
 
         {upcomingPayments.length > 0 && (
           <Card>
-            <CardLabel>Próximos pagos</CardLabel>
+            <CardLabel>{t.money.dashboard.upcomingPayments}</CardLabel>
             <div className="mt-3 flex flex-col gap-1">
               {upcomingPayments.map((p) => {
                 const daysUntil = differenceInCalendarDays(startOfDay(p.dueDate), startOfDay(today));
@@ -349,8 +354,12 @@ export default async function MoneyDashboardPage() {
                       <div className="min-w-0">
                         <div className="truncate text-ink">{p.name}</div>
                         <div className="text-xs text-ink-faint">
-                          {p.dueDate.toLocaleDateString("es-AR", { day: "numeric", month: "short" })} ·{" "}
-                          {daysUntil <= 0 ? "hoy" : daysUntil === 1 ? "mañana" : `en ${daysUntil} días`}
+                          {p.dueDate.toLocaleDateString(INTL_LOCALES[locale], { day: "numeric", month: "short" })} ·{" "}
+                          {daysUntil <= 0
+                            ? t.money.common.today
+                            : daysUntil === 1
+                              ? t.money.common.tomorrow
+                              : `${t.money.common.inDaysPrefix} ${daysUntil} ${t.money.common.dayPlural}`}
                         </div>
                       </div>
                     </div>
@@ -364,7 +373,7 @@ export default async function MoneyDashboardPage() {
 
         {upcomingDates.length > 0 && (
           <Card>
-            <CardLabel>Fechas importantes</CardLabel>
+            <CardLabel>{t.money.dashboard.importantDatesTitle}</CardLabel>
             <div className="mt-3 flex flex-col gap-1">
               {upcomingDates.slice(0, 4).map((d) => (
                 <div key={d.id} className="flex items-center justify-between gap-3 rounded-xl px-1.5 py-2 text-sm transition-colors hover:bg-surface-raised">
@@ -381,7 +390,11 @@ export default async function MoneyDashboardPage() {
                     </div>
                   </div>
                   <span className="shrink-0 text-ink-soft">
-                    {d.daysUntil === 0 ? "hoy" : d.daysUntil === 1 ? "mañana" : `en ${d.daysUntil} días`}
+                    {d.daysUntil === 0
+                      ? t.money.common.today
+                      : d.daysUntil === 1
+                        ? t.money.common.tomorrow
+                        : `${t.money.common.inDaysPrefix} ${d.daysUntil} ${t.money.common.dayPlural}`}
                   </span>
                 </div>
               ))}
@@ -391,13 +404,13 @@ export default async function MoneyDashboardPage() {
 
         <Card>
           <div className="mb-1 flex items-center justify-between">
-            <CardLabel>Gastos recientes</CardLabel>
+            <CardLabel>{t.money.dashboard.recentExpenses}</CardLabel>
             <Link href="/money/transactions" className="text-xs font-medium text-accent-ink hover:underline">
-              Ver todos
+              {t.money.dashboard.viewAll}
             </Link>
           </div>
           {freeExpenses.length === 0 ? (
-            <p className="mt-2 text-sm text-ink-soft">Todavía no registraste gastos este ciclo.</p>
+            <p className="mt-2 text-sm text-ink-soft">{t.money.dashboard.noExpensesThisCycle}</p>
           ) : (
             <div className="mt-2 flex flex-col divide-y divide-border-soft">
               {freeExpenses.slice(0, 6).map((expense) => {
@@ -408,7 +421,7 @@ export default async function MoneyDashboardPage() {
                       <span aria-hidden>{category?.icon ?? "📦"}</span>
                       <div>
                         <div className="text-ink">{expense.description}</div>
-                        <div className="text-xs text-ink-faint">{category?.name ?? "Sin categoría"}</div>
+                        <div className="text-xs text-ink-faint">{category?.name ?? t.money.common.noCategory}</div>
                       </div>
                     </div>
                     <span className="font-mono tabular-nums text-ink">
@@ -423,9 +436,11 @@ export default async function MoneyDashboardPage() {
 
         <Card domain="accent" className="flex items-center justify-between">
           <div>
-            <CardLabel>Proyección a {PROJECTION_HORIZON_DAYS} días</CardLabel>
+            <CardLabel>
+              {t.money.dashboard.projectionPrefix} {PROJECTION_HORIZON_DAYS} {t.money.common.dayPlural}
+            </CardLabel>
             <p className="mt-1 text-sm text-ink-soft">
-              De {formatCurrency(totalBalance.toNumber())} a{" "}
+              {t.money.dashboard.projectionFrom} {formatCurrency(totalBalance.toNumber())} {t.money.dashboard.projectionTo}{" "}
               <span className="font-medium text-ink">{formatCurrency(projectedBalance.toNumber())}</span>
             </p>
           </div>
@@ -459,28 +474,26 @@ function AlertRow({ alert }: { alert: MoneyAlert }) {
   );
 }
 
-function EmptyState() {
+function EmptyState({ t }: { t: Dictionary }) {
   return (
     <Card domain="money" className="flex flex-col items-center gap-3 py-10 text-center">
       <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-money-soft text-money">
         <Wallet size={22} />
       </div>
-      <h2 className="font-display text-lg font-bold">Agregá tu primera cuenta</h2>
-      <p className="max-w-xs text-sm text-ink-soft">
-        Para ver tu disponible para gastar necesitás al menos una cuenta con saldo.
-      </p>
+      <h2 className="font-display text-lg font-bold">{t.money.dashboard.emptyTitle}</h2>
+      <p className="max-w-xs text-sm text-ink-soft">{t.money.dashboard.emptyDescription}</p>
       <div className="flex flex-wrap justify-center gap-2">
         <Link
           href="/money/onboarding"
           className="inline-flex h-10 items-center justify-center gap-1.5 rounded-xl bg-accent px-4 font-display text-sm font-medium text-white hover:opacity-90"
         >
-          Configuración guiada <ArrowRight size={16} />
+          {t.money.dashboard.guidedSetup} <ArrowRight size={16} />
         </Link>
         <Link
           href="/money/accounts/new"
           className="inline-flex h-10 items-center justify-center gap-1.5 rounded-xl border border-border px-4 font-display text-sm font-medium text-ink-soft hover:border-accent/50 hover:text-ink"
         >
-          Crear cuenta yo mismo
+          {t.money.dashboard.createAccountMyself}
         </Link>
       </div>
     </Card>
